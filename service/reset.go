@@ -5,7 +5,7 @@ import (
 	"ocpp-client/message"
 )
 
-func ResetResponse(msgID string, msg []byte) ([]byte, error) {
+func (c *ChargeStation) ResetResponse(msgID string, msg []byte) ([]byte, error) {
 	request := &message.ResetRequestJson{}
 	err := json.Unmarshal(msg, request)
 	if err != nil {
