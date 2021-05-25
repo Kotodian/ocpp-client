@@ -11,7 +11,7 @@ import (
 )
 
 func NewChargeStation(c *gin.Context) {
-	request := struct {
+	request := &struct {
 		// 前缀
 		SN string `json:"sn"`
 		// 个数
@@ -28,9 +28,12 @@ func NewChargeStation(c *gin.Context) {
 		return
 	}
 	// 校验
-	if len(request.SN) == 0 || len(request.Addr) == 0 || request.Nums <= 0 {
-		c.JSON(400, errors.New("invalid sn or nums"))
+	if len(request.SN) == 0 || len(request.Addr) == 0 {
+		c.JSON(400, errors.New("invalid sn or addr"))
 		return
+	}
+	if request.Nums <= 0 {
+		request.Nums = 1
 	}
 	var g errgroup.Group
 	for i := 1; i <= request.Nums; i++ {
@@ -51,4 +54,41 @@ func NewChargeStation(c *gin.Context) {
 		return
 	}
 	c.JSON(200, "success")
+}
+
+func Command(c *gin.Context) {
+	request := &struct {
+		SN      string `json:"sn"`
+		Command string `json:"command"`
+	}{}
+	err := c.ShouldBindJSON(request)
+	if err != nil {
+		c.JSON(400, err)
+		return
+	}
+	if len(request.SN) == 0 || len(request.Command) == 0 {
+		c.JSON(400, errors.New("invalid sn or command"))
+		return
+	}
+	_websocket, ok := websocket.Cache.Get(request.SN)
+	if !ok {
+		c.JSON(400, errors.New("this charge station doesn't exist"))
+		return
+	}
+	// 断言
+	ws := _websocket.(*websocket.Client)
+	if ws.Connected() {
+		msg, err := ws.Instance().Function("2", "", request.Command)
+		if err != nil {
+			c.JSON(500, err)
+			return
+		}
+		ws.Write(msg)
+		c.JSON(200, "success")
+		return
+	} else {
+		c.JSON(500, errors.New("this charge station doesn't connect"))
+		return
+	}
+
 }
