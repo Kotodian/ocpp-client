@@ -56,6 +56,9 @@ func (c *Client) Conn(addr string) error {
 	})
 	go c.writePump()
 	go c.readPump()
+	time.Sleep(1 * time.Second)
+	msg, _ := c.instance.Function("2", "", "BootNotification")
+	c.write <- msg
 	return nil
 }
 
@@ -75,6 +78,8 @@ func (c *Client) reConn(addr string) error {
 	c.close = make(chan struct{}, 1)
 	go c.writePump()
 	go c.readPump()
+	// 睡一秒保证两个协程建立好
+	time.Sleep(1 * time.Second)
 	c.instance.ReConn()
 	return nil
 }
@@ -118,8 +123,8 @@ func (c *Client) readPump() {
 				}
 			case websocket.TextMessage:
 				for _, m := range strings.Split(string(msg), "\n") {
-					messageType, messageID, action, payload := message.Parse([]byte(m))
-					msg, err = c.instance.Function(messageType, messageID, action, payload)
+					_, messageID, action, payload := message.Parse([]byte(m))
+					msg, err = c.instance.Function("3", messageID, action, payload)
 					if err != nil {
 						return
 					}
