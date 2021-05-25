@@ -5,7 +5,7 @@ import (
 	"ocpp-client/message"
 )
 
-func (c *ChargeStation) SetVariables(msgID string, msg []byte) ([]byte, error) {
+func (c *ChargeStation) SetVariablesResponse(msgID string, msg []byte) ([]byte, error) {
 	request := &message.SetVariablesRequestJson{}
 	err := json.Unmarshal(msg, request)
 	if err != nil {
