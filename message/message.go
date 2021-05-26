@@ -13,6 +13,12 @@ var (
 	cache sync.Map
 )
 
+// New 新建一个发送给ac-ocpp的message
+// 格式如下 [2,"messageID", "action",payload] 或者 [3, "messageID", payload]
+// request, _ := json.Marshal(&BootNotificationRequest{})
+// New("2", "BootNotification",request)
+// response, _ := json.Marshal(&BootNotificationResponse{})
+// New("3", "Reset", response, messageID)
 func New(typ, action string, payload interface{}, id ...string) ([]byte, string, error) {
 	p, err := json.Marshal(payload)
 	if err != nil {
@@ -54,10 +60,12 @@ func New(typ, action string, payload interface{}, id ...string) ([]byte, string,
 	return []byte(builder.String()), msgID, nil
 }
 
+// messageID 目前是使用时间戳
 func messageID() string {
 	return strconv.FormatInt(time.Now().Unix(), 10)
 }
 
+// Parse 解析ac-ocpp过来的message
 func Parse(msg []byte) (typ string, msgID string, action string, payload []byte) {
 	// 如果是请求的话
 	typ = gjson.GetBytes(msg, "0").String()

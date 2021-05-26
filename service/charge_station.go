@@ -5,15 +5,23 @@ import (
 	"time"
 )
 
+// ChargeStation 充电桩实例 具有一些属性
 type ChargeStation struct {
-	sn         string
+	// 唯一值
+	sn string
+	// 运营商名称
 	vendorName string
-	model      string
-	interval   time.Duration
-	stop       chan struct{}
-	Resend     chan []byte
+	// 不知道干啥用的
+	model string
+	// heartbeat时间
+	interval time.Duration
+	// 停止channel
+	stop chan struct{}
+	// 重新发送命令的channel
+	Resend chan []byte
 }
 
+// NewChargeStation 通过sn创建实例
 func NewChargeStation(sn string) *ChargeStation {
 	return &ChargeStation{
 		sn:         sn,
@@ -24,31 +32,42 @@ func NewChargeStation(sn string) *ChargeStation {
 	}
 }
 
+// ID 充电桩唯一值
 func (c *ChargeStation) ID() string {
 	return c.sn
 }
 
+// Function 调用指定命令 parameters代表参数一般就是payload,由桩主动发起的命令不需要参数以及messageID
+// example c.Function("2","","BootNotification") 或者 c.Function("3", "BootNotification",payload, messageID)
 func (c *ChargeStation) Function(typ string, messageID, action string, parameters ...interface{}) ([]byte, error) {
+	// 确认消息类型
 	if typ == "2" {
 		action += "Request"
 	} else {
 		action += "Response"
 	}
-
+	// 参数列表
 	var p []reflect.Value
+	// 如果需要提供messageID,就将messageID放入到参数列表中
 	if len(messageID) > 0 {
 		p = append(p, reflect.ValueOf(messageID))
 	}
+	// 如果有其他参数,就加入到参数列表中
 	if len(parameters) > 0 {
 		for _, parameter := range parameters {
 			p = append(p, reflect.ValueOf(parameter))
 		}
 	}
+	//根据charge station的反射调用方法
+	// values 表示返回结果 如果该返回值有两个,第一个就是[]byte类型,第二个代表error
+	// 如果返回值只有一个就表示只有error
 	values := reflect.ValueOf(c).MethodByName(action).Call(p)
 	if len(values) == 2 {
+		// 判断error为空,形如if err == nil {return value, nil}
 		if values[1].IsNil() {
 			return values[0].Bytes(), nil
 		} else {
+			// 断言 error
 			return nil, values[1].Interface().(error)
 		}
 
@@ -61,28 +80,36 @@ func (c *ChargeStation) Function(typ string, messageID, action string, parameter
 	}
 }
 
+// Stop 停止信号 如果该channel接收到值就需要停止发送心跳数据
 func (c *ChargeStation) Stop() {
 	c.stop <- struct{}{}
 }
 
+// ReConn 重新连接
 func (c *ChargeStation) ReConn() {
+	// 如果interval等于0表示该charge station还未接收到ac-ocpp的BootNotification的response就断开连接了
+	// 所以就重新发送BootNotificationRequest
 	if c.interval == 0 {
 		msg, _ := c.Function("2", "", "BootNotification")
 		c.Resend <- msg
 	} else {
+		// 定时发送heartbeat命令
 		go func() {
 			ticker := time.NewTicker(c.interval)
 			defer ticker.Stop()
 			for {
 				select {
+				// 如果停止了就关闭Heartbeat
 				case <-c.stop:
 					return
+				// 时间到了就发送Heartbeat
 				case <-ticker.C:
 					msg, _ := c.Function("2", "", "Heartbeat")
 					c.Resend <- msg
 				}
 			}
 		}()
+		// 发送StatusNotification
 		msg, _ := c.Function("2", "", "StatusNotification")
 		c.Resend <- msg
 	}

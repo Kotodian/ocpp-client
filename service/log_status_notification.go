@@ -5,6 +5,7 @@ import (
 	"ocpp-client/message"
 )
 
+// LogStatusNotificationRequest log status
 func (c *ChargeStation) LogStatusNotificationRequest() ([]byte, error) {
 	id := 9
 	request := &message.LogStatusNotificationRequestJson{
