@@ -24,5 +24,13 @@ func TestClient_Conn(t *testing.T) {
 }
 
 func TestClient_reconn(t *testing.T) {
-
+	client := NewClient(service.NewChargeStation("T1641735200"))
+	host := "10.43.0.72:8844"
+	addr := url.URL{Scheme: "ws", Host: host, Path: "/ocpp/T1641735200"}
+	err := client.Conn(addr.String())
+	assert.Nil(t, err)
+	time.Sleep(1 * time.Second)
+	client.Close()
+	time.Sleep(12 * time.Second)
+	assert.Equal(t, true, client.Connected())
 }

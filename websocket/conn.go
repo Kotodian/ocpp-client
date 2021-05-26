@@ -14,6 +14,7 @@ import (
 var Cache cmap.ConcurrentMap
 
 type Client struct {
+	addr string
 	// 锁
 	lock sync.Mutex
 	// 是否已经连接
@@ -61,14 +62,7 @@ func (c *Client) Conn(addr string) error {
 		return nil
 	}
 	c.conn = conn
-	c.conn.SetCloseHandler(func(code int, text string) error {
-		c.instance.Stop()
-		c.SetConnected(false)
-		time.AfterFunc(180*time.Second, func() {
-			_ = c.reConn(addr)
-		})
-		return nil
-	})
+	c.addr = addr
 	go c.writePump()
 	go c.readPump()
 	time.Sleep(1 * time.Second)
@@ -78,20 +72,12 @@ func (c *Client) Conn(addr string) error {
 	return nil
 }
 
-func (c *Client) reConn(addr string) error {
-	conn, _, err := c.dialer.Dial(addr, nil)
+func (c *Client) reConn() error {
+	conn, _, err := c.dialer.Dial(c.addr, nil)
 	if err != nil {
 		return err
 	}
 	c.conn = conn
-	c.conn.SetCloseHandler(func(code int, text string) error {
-		c.instance.Stop()
-		c.SetConnected(false)
-		time.AfterFunc(180*time.Second, func() {
-			_ = c.reConn(addr)
-		})
-		return nil
-	})
 	c.close = make(chan struct{}, 1)
 	go c.writePump()
 	go c.readPump()
@@ -103,11 +89,9 @@ func (c *Client) reConn(addr string) error {
 }
 
 func (c *Client) writePump() {
-	defer c.conn.Close()
+	defer c.Close()
 	for {
 		select {
-		case <-c.close:
-			return
 		case msg := <-c.write:
 			err := c.conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
@@ -123,40 +107,35 @@ func (c *Client) writePump() {
 }
 
 func (c *Client) readPump() {
-	defer c.conn.Close()
+	defer c.Close()
 	for {
-		select {
-		case <-c.close:
+		typ, msg, err := c.conn.ReadMessage()
+		if err != nil {
 			return
-		default:
-			typ, msg, err := c.conn.ReadMessage()
+		}
+		if len(msg) == 0 {
+			continue
+		}
+		switch typ {
+		case websocket.PingMessage:
+			err = c.conn.WriteMessage(websocket.PongMessage, nil)
 			if err != nil {
 				return
 			}
-			if len(msg) == 0 {
-				continue
-			}
-			switch typ {
-			case websocket.PingMessage:
-				err = c.conn.WriteMessage(websocket.PongMessage, nil)
+		case websocket.TextMessage:
+			for _, m := range strings.Split(string(msg), "\n") {
+				typ, messageID, action, payload := message.Parse([]byte(m))
+				if typ == "4" {
+					continue
+				}
+				msg, err = c.instance.Function("3", messageID, action, payload)
 				if err != nil {
 					return
 				}
-			case websocket.TextMessage:
-				for _, m := range strings.Split(string(msg), "\n") {
-					typ, messageID, action, payload := message.Parse([]byte(m))
-					if typ == "4" {
-						continue
-					}
-					msg, err = c.instance.Function("3", messageID, action, payload)
-					if err != nil {
-						return
-					}
-					if msg == nil {
-						continue
-					}
-					c.write <- msg
+				if msg == nil {
+					continue
 				}
+				c.write <- msg
 			}
 		}
 	}
@@ -184,5 +163,9 @@ func (c *Client) Write(msg []byte) {
 
 func (c *Client) Close() {
 	c.conn.Close()
-	c.close <- struct{}{}
+	c.SetConnected(false)
+	c.instance.Stop()
+	time.AfterFunc(10*time.Second, func() {
+		_ = c.reConn()
+	})
 }
