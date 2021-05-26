@@ -2,6 +2,7 @@ package service
 
 import (
 	"reflect"
+	"sync"
 	"time"
 )
 
@@ -19,17 +20,25 @@ type ChargeStation struct {
 	stop chan struct{}
 	// 重新发送命令的channel
 	Resend chan []byte
+	// 充电事务通道
+	transactions chan Transaction
+	// 锁
+	lock sync.Mutex
+	// 目前处理的事务
+	transaction *Transaction
 }
 
 // NewChargeStation 通过sn创建实例
 func NewChargeStation(sn string) *ChargeStation {
-	return &ChargeStation{
-		sn:         sn,
-		stop:       make(chan struct{}, 1),
-		vendorName: "joysonquin",
-		model:      "test",
-		Resend:     make(chan []byte, 1),
+	chargeStation := &ChargeStation{
+		sn:           sn,
+		stop:         make(chan struct{}, 1),
+		vendorName:   "joysonquin",
+		model:        "test",
+		Resend:       make(chan []byte, 1),
+		transactions: make(chan Transaction, 1),
 	}
+	return chargeStation
 }
 
 // ID 充电桩唯一值
@@ -82,7 +91,7 @@ func (c *ChargeStation) Function(typ string, messageID, action string, parameter
 
 // Stop 停止信号 如果该channel接收到值就需要停止发送心跳数据
 func (c *ChargeStation) Stop() {
-	c.stop <- struct{}{}
+	close(c.stop)
 }
 
 // ReConn 重新连接
@@ -90,7 +99,7 @@ func (c *ChargeStation) ReConn() {
 	// 如果interval等于0表示该charge station还未接收到ac-ocpp的BootNotification的response就断开连接了
 	// 所以就重新发送BootNotificationRequest
 	if c.interval == 0 {
-		msg, _ := c.Function("2", "", "BootNotification")
+		msg, _ := c.BootNotificationRequest()
 		c.Resend <- msg
 	} else {
 		// 定时发送heartbeat命令
@@ -104,13 +113,34 @@ func (c *ChargeStation) ReConn() {
 					return
 				// 时间到了就发送Heartbeat
 				case <-ticker.C:
-					msg, _ := c.Function("2", "", "Heartbeat")
+					msg, _ := c.HeartbeatRequest()
 					c.Resend <- msg
 				}
 			}
 		}()
 		// 发送StatusNotification
-		msg, _ := c.Function("2", "", "StatusNotification")
+		msg, _ := c.StatusNotificationRequest()
 		c.Resend <- msg
+	}
+}
+
+func (c *ChargeStation) SendTransactionEvent() {
+	for {
+		select {
+		case <-c.stop:
+			return
+		case transaction := <-c.transactions:
+			c.lock.Lock()
+			c.transaction = &transaction
+			event, err := c.TransactionEvent()
+			if err != nil {
+				goto unlock
+			}
+			if event != nil {
+				c.Resend <- event
+			}
+		unlock:
+			c.lock.Unlock()
+		}
 	}
 }
