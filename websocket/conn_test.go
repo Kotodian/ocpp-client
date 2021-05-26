@@ -31,6 +31,6 @@ func TestClient_reconn(t *testing.T) {
 	assert.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	client.Close()
-	time.Sleep(12 * time.Second)
+	time.Sleep(15 * time.Second)
 	assert.Equal(t, true, client.Connected())
 }

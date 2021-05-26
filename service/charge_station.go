@@ -11,7 +11,7 @@ type ChargeStation struct {
 	model      string
 	interval   time.Duration
 	stop       chan struct{}
-	resend     chan []byte
+	Resend     chan []byte
 }
 
 func NewChargeStation(sn string) *ChargeStation {
@@ -20,7 +20,7 @@ func NewChargeStation(sn string) *ChargeStation {
 		stop:       make(chan struct{}, 1),
 		vendorName: "joysonquin",
 		model:      "test",
-		resend:     make(chan []byte, 1),
+		Resend:     make(chan []byte, 1),
 	}
 }
 
@@ -61,10 +61,6 @@ func (c *ChargeStation) Function(typ string, messageID, action string, parameter
 	}
 }
 
-func (c *ChargeStation) Resend() <-chan []byte {
-	return c.resend
-}
-
 func (c *ChargeStation) Stop() {
 	c.stop <- struct{}{}
 }
@@ -72,7 +68,7 @@ func (c *ChargeStation) Stop() {
 func (c *ChargeStation) ReConn() {
 	if c.interval == 0 {
 		msg, _ := c.Function("2", "", "BootNotification")
-		c.resend <- msg
+		c.Resend <- msg
 	} else {
 		go func() {
 			ticker := time.NewTicker(c.interval)
@@ -83,11 +79,11 @@ func (c *ChargeStation) ReConn() {
 					return
 				case <-ticker.C:
 					msg, _ := c.Function("2", "", "Heartbeat")
-					c.resend <- msg
+					c.Resend <- msg
 				}
 			}
 		}()
 		msg, _ := c.Function("2", "", "StatusNotification")
-		c.resend <- msg
+		c.Resend <- msg
 	}
 }

@@ -46,7 +46,7 @@ func (c *ChargeStation) BootNotificationResponse(msgID string, msg []byte) error
 					if err != nil {
 						return
 					}
-					c.resend <- request
+					c.Resend <- request
 				}
 			}
 		}()
@@ -64,7 +64,7 @@ func (c *ChargeStation) BootNotificationResponse(msgID string, msg []byte) error
 					if err != nil {
 						return
 					}
-					c.resend <- request
+					c.Resend <- request
 				}
 			}
 		}()
