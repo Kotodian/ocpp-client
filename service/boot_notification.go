@@ -9,6 +9,10 @@ import (
 func (c *ChargeStation) BootNotificationRequest() ([]byte, error) {
 	request := &message.BootNotificationRequestJson{
 		Reason: message.BootReasonEnumType_1_PowerUp,
+		CustomData: &message.CustomDataType_2{
+			VendorId:      "0000",
+			ConnectorType: []string{"2"},
+		},
 		ChargingStation: message.ChargingStationType{
 			SerialNumber: &c.sn,
 			VendorName:   c.vendorName,

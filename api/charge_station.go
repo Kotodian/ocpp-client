@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
+	"net/url"
 	"ocpp-client/service"
 	"ocpp-client/websocket"
 	"time"
@@ -39,9 +40,15 @@ func NewChargeStation(c *gin.Context) {
 	for i := 1; i <= request.Nums; i++ {
 		g.Go(func() error {
 			sn := request.SN + fmt.Sprint(i)
+			if len(sn) < 11 {
+				for i := 0; i < 11-len(sn); i++ {
+					sn += "0"
+				}
+			}
 			station := service.NewChargeStation(sn)
 			client := websocket.NewClient(station)
-			err := client.Conn("ws://" + request.Addr + "/ocpp/" + sn)
+			addr := url.URL{Scheme: "ws", Host: request.Addr, Path: "/ocpp/" + sn}
+			err := client.Conn(addr.String())
 			if err != nil {
 				return fmt.Errorf("%s connect error %s", sn, err.Error())
 			}

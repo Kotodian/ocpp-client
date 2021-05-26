@@ -3,9 +3,9 @@ package websocket
 import (
 	"github.com/gorilla/websocket"
 	cmap "github.com/orcaman/concurrent-map"
+	"log"
 	"ocpp-client/message"
 	"ocpp-client/service"
-	"path"
 	"strings"
 	"sync"
 	"time"
@@ -52,9 +52,9 @@ func NewClient(instance *service.ChargeStation) *Client {
 
 func (c *Client) Conn(addr string) error {
 	// 路由参数
-	addr = path.Join(addr, c.instance.ID())
 	conn, _, err := c.dialer.Dial(addr, nil)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	if c.instance == nil {
@@ -133,6 +133,9 @@ func (c *Client) readPump() {
 			if err != nil {
 				return
 			}
+			if len(msg) == 0 {
+				continue
+			}
 			switch typ {
 			case websocket.PingMessage:
 				err = c.conn.WriteMessage(websocket.PongMessage, nil)
@@ -141,7 +144,10 @@ func (c *Client) readPump() {
 				}
 			case websocket.TextMessage:
 				for _, m := range strings.Split(string(msg), "\n") {
-					_, messageID, action, payload := message.Parse([]byte(m))
+					typ, messageID, action, payload := message.Parse([]byte(m))
+					if typ == "4" {
+						continue
+					}
 					msg, err = c.instance.Function("3", messageID, action, payload)
 					if err != nil {
 						return
