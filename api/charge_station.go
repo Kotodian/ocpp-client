@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"ocpp-client/service"
 	"ocpp-client/websocket"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -17,8 +19,6 @@ func NewChargeStation(c *gin.Context) {
 		SN string `json:"sn"`
 		// 个数
 		Nums int `json:"nums"`
-		// 连接地址
-		Addr string `json:"addr"`
 		// 睡眠时间(ms)
 		Sleep int `json:"sleep"`
 	}{}
@@ -29,10 +29,11 @@ func NewChargeStation(c *gin.Context) {
 		return
 	}
 	// 校验
-	if len(request.SN) == 0 || len(request.Addr) == 0 {
+	if len(request.SN) == 0 && !strings.HasPrefix(request.SN, "T") {
 		c.JSON(400, errors.New("invalid sn or addr"))
 		return
 	}
+	// 默认启动一个
 	if request.Nums <= 0 {
 		request.Nums = 1
 	}
@@ -47,14 +48,18 @@ func NewChargeStation(c *gin.Context) {
 			}
 			station := service.NewChargeStation(sn)
 			client := websocket.NewClient(station)
-			addr := url.URL{Scheme: "ws", Host: request.Addr, Path: "/ocpp/" + sn}
+			addr := url.URL{Scheme: "ws", Host: os.Getenv("ADDR"), Path: "/ocpp/" + sn}
 			err := client.Conn(addr.String())
 			if err != nil {
 				return fmt.Errorf("%s connect error %s", sn, err.Error())
 			}
 			return nil
 		})
-		time.Sleep(time.Duration(request.Sleep) * time.Millisecond)
+		if request.Sleep <= 0 {
+			time.Sleep(100 * time.Millisecond)
+		} else {
+			time.Sleep(time.Duration(request.Sleep) * time.Millisecond)
+		}
 	}
 	if err = g.Wait(); err != nil {
 		c.JSON(500, err)

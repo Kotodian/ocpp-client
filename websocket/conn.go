@@ -181,3 +181,8 @@ func (c *Client) Instance() *service.ChargeStation {
 func (c *Client) Write(msg []byte) {
 	c.write <- msg
 }
+
+func (c *Client) Close() {
+	c.conn.Close()
+	c.close <- struct{}{}
+}

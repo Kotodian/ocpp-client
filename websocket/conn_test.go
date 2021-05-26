@@ -22,3 +22,7 @@ func TestClient_Conn(t *testing.T) {
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Second)
 }
+
+func TestClient_reconn(t *testing.T) {
+
+}
