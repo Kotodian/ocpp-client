@@ -41,11 +41,7 @@ func NewChargeStation(c *gin.Context) {
 	for i := 1; i <= request.Nums; i++ {
 		g.Go(func() error {
 			sn := request.SN + fmt.Sprint(i)
-			if len(sn) < 11 {
-				for i := 0; i < 11-len(sn); i++ {
-					sn += "0"
-				}
-			}
+			sn = formatSN(sn)
 			station := service.NewChargeStation(sn)
 			client := websocket.NewClient(station)
 			addr := url.URL{Scheme: "ws", Host: os.Getenv("ADDR"), Path: "/ocpp/" + sn}
@@ -55,11 +51,12 @@ func NewChargeStation(c *gin.Context) {
 			}
 			return nil
 		})
-		if request.Sleep <= 0 {
-			time.Sleep(100 * time.Millisecond)
-		} else {
-			time.Sleep(time.Duration(request.Sleep) * time.Millisecond)
-		}
+
+	}
+	if request.Sleep <= 0 {
+		time.Sleep(100 * time.Millisecond)
+	} else {
+		time.Sleep(time.Duration(request.Sleep) * time.Millisecond)
 	}
 	if err = g.Wait(); err != nil {
 		c.JSON(500, err)
@@ -102,5 +99,14 @@ func Command(c *gin.Context) {
 		c.JSON(500, errors.New("this charge station doesn't connect"))
 		return
 	}
+}
 
+func formatSN(sn string) string {
+	if len(sn) > 11 {
+		sn = sn[:11]
+	} else if len(sn) < 11 {
+		repeat := strings.Repeat("0", 11-len(sn))
+		sn += repeat
+	}
+	return sn
 }
