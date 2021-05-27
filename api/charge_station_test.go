@@ -14,8 +14,8 @@ func TestFormatSN(t *testing.T) {
 }
 
 func TestCreateMultipleChargeStation(t *testing.T) {
-	for i := 0; i < 10; i++ {
-		sn := "T16417352" + fmt.Sprint(i)
+	for i := 0; i < 1; i++ {
+		sn := "T164173551" + fmt.Sprint(i)
 		fmt.Println(formatSN(sn))
 	}
 }

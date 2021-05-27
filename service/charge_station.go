@@ -33,8 +33,8 @@ func NewChargeStation(sn string) *ChargeStation {
 	chargeStation := &ChargeStation{
 		sn:           sn,
 		stop:         make(chan struct{}, 1),
-		vendorName:   "joysonquin",
-		model:        "test",
+		vendorName:   "JoysonQuin",
+		model:        "JWBOX",
 		Resend:       make(chan []byte, 1),
 		transactions: make(chan Transaction, 1),
 	}
@@ -103,21 +103,21 @@ func (c *ChargeStation) ReConn() {
 		c.Resend <- msg
 	} else {
 		// 定时发送heartbeat命令
-		go func() {
-			ticker := time.NewTicker(c.interval)
-			defer ticker.Stop()
-			for {
-				select {
-				// 如果停止了就关闭Heartbeat
-				case <-c.stop:
-					return
-				// 时间到了就发送Heartbeat
-				case <-ticker.C:
-					msg, _ := c.HeartbeatRequest()
-					c.Resend <- msg
-				}
-			}
-		}()
+		//go func() {
+		//	ticker := time.NewTicker(c.interval)
+		//	defer ticker.Stop()
+		//	for {
+		//		select {
+		//		// 如果停止了就关闭Heartbeat
+		//		case <-c.stop:
+		//			return
+		//		// 时间到了就发送Heartbeat
+		//		case <-ticker.C:
+		//			msg, _ := c.HeartbeatRequest()
+		//			c.Resend <- msg
+		//		}
+		//	}
+		//}()
 		// 发送StatusNotification
 		msg, _ := c.StatusNotificationRequest()
 		c.Resend <- msg

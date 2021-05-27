@@ -11,5 +11,4 @@ require (
 	github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.8.0
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )

@@ -3,6 +3,7 @@ package websocket
 import (
 	"github.com/gorilla/websocket"
 	cmap "github.com/orcaman/concurrent-map"
+	"log"
 	"ocpp-client/message"
 	"ocpp-client/service"
 	"strings"
@@ -82,6 +83,10 @@ func (c *Client) Conn(addr string) error {
 	// 调用BootNotification
 	msg, _ := c.instance.Function("2", "", "BootNotification")
 	c.write <- msg
+	time.Sleep(5 * time.Second)
+	// 再次调用BootNotification
+	msg, _ = c.instance.Function("2", "", "BootNotification")
+	c.write <- msg
 	return nil
 }
 
@@ -141,6 +146,7 @@ func (c *Client) readPump() {
 			if len(msg) == 0 {
 				continue
 			}
+			log.Println(string(msg))
 			// 判断数据类型
 			switch typ {
 			// 如果ping,就返回pong数据

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/sync/errgroup"
+	"log"
 	"net/url"
 	"ocpp-client/service"
 	"ocpp-client/websocket"
@@ -37,35 +37,30 @@ func NewChargeStation(c *gin.Context) {
 	if request.Nums <= 0 {
 		request.Nums = 1
 	}
-	var g errgroup.Group
-	for i := 1; i <= request.Nums; i++ {
-		g.Go(func() error {
+	go func() {
+		for i := 1; i <= request.Nums; i++ {
 			sn := request.SN + fmt.Sprint(i)
 			sn = formatSN(sn)
 			station := service.NewChargeStation(sn)
 			client := websocket.NewClient(station)
 			if client == nil {
-				return nil
+				continue
 			}
 			addr := url.URL{Scheme: "ws", Host: os.Getenv("ADDR"), Path: "/ocpp/" + sn}
 			err := client.Conn(addr.String())
 			if err != nil {
-				return fmt.Errorf("%s connect error %s", sn, err.Error())
+				log.Printf("%s connect error %s\n", sn, err.Error())
+				continue
 			}
-			return nil
-		})
 
-		if request.Sleep <= 0 {
-			time.Sleep(100 * time.Millisecond)
-		} else {
-			time.Sleep(time.Duration(request.Sleep) * time.Millisecond)
+			if request.Sleep <= 0 {
+				time.Sleep(100 * time.Millisecond)
+			} else {
+				time.Sleep(time.Duration(request.Sleep) * time.Millisecond)
+			}
 		}
-	}
+	}()
 
-	if err = g.Wait(); err != nil {
-		c.JSON(500, err)
-		return
-	}
 	c.JSON(200, "success")
 }
 
