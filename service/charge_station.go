@@ -132,7 +132,7 @@ func (c *ChargeStation) SendTransactionEvent() {
 		case transaction := <-c.transactions:
 			c.lock.Lock()
 			c.transaction = &transaction
-			event, err := c.TransactionEvent()
+			event, err := c.TransactionEventRequest()
 			if err != nil {
 				goto unlock
 			}
