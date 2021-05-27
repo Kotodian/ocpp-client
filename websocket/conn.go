@@ -51,6 +51,9 @@ func NewClient(instance *service.ChargeStation) *Client {
 		connected: false,
 	}
 	// 存储的缓存
+	if _, ok := Cache.Get(instance.ID()); ok {
+		return nil
+	}
 	Cache.Set(instance.ID(), client)
 	return client
 }

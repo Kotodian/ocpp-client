@@ -44,6 +44,9 @@ func NewChargeStation(c *gin.Context) {
 			sn = formatSN(sn)
 			station := service.NewChargeStation(sn)
 			client := websocket.NewClient(station)
+			if client == nil {
+				return nil
+			}
 			addr := url.URL{Scheme: "ws", Host: os.Getenv("ADDR"), Path: "/ocpp/" + sn}
 			err := client.Conn(addr.String())
 			if err != nil {
