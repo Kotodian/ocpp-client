@@ -7,6 +7,9 @@ import (
 )
 
 func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
+	if c.transaction == nil {
+		return nil, nil
+	}
 	request := &message.TransactionEventRequestJson{
 		EventType: message.TransactionEventEnumType_1_Ended,
 		MeterValue: []message.MeterValueType_1{
