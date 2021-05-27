@@ -55,12 +55,13 @@ func NewChargeStation(c *gin.Context) {
 			return nil
 		})
 
+		if request.Sleep <= 0 {
+			time.Sleep(100 * time.Millisecond)
+		} else {
+			time.Sleep(time.Duration(request.Sleep) * time.Millisecond)
+		}
 	}
-	if request.Sleep <= 0 {
-		time.Sleep(100 * time.Millisecond)
-	} else {
-		time.Sleep(time.Duration(request.Sleep) * time.Millisecond)
-	}
+
 	if err = g.Wait(); err != nil {
 		c.JSON(500, err)
 		return
