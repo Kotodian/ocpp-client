@@ -32,7 +32,7 @@ type ChargeStation struct {
 func NewChargeStation(sn string) *ChargeStation {
 	chargeStation := &ChargeStation{
 		sn:           sn,
-		stop:         make(chan struct{}, 1),
+		stop:         make(chan struct{}),
 		vendorName:   "JoysonQuin",
 		model:        "JWBOX",
 		Resend:       make(chan []byte, 1),
@@ -122,6 +122,7 @@ func (c *ChargeStation) ReConn() {
 		msg, _ := c.StatusNotificationRequest()
 		c.Resend <- msg
 	}
+	c.stop = make(chan struct{})
 }
 
 func (c *ChargeStation) SendTransactionEvent() {
