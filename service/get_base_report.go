@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"log"
 	"ocpp-client/message"
 )
 
@@ -16,9 +15,15 @@ func (c *ChargeStation) GetBaseReportResponse(msgID string, msg []byte) ([]byte,
 	}
 	// 封装msg
 	msg, _, err = message.New("3", "GetBaseReport", &message.GetBaseReportResponseJson{Status: message.GenericDeviceModelStatusEnumType_1_Accepted}, msgID)
-	log.Println(string(msg))
 	if err != nil {
 		return nil, err
 	}
-	return msg, nil
+	// 异步地发送多个NotifyReport
+	//go func() {
+	//	done := make(chan struct{})
+	//	c.notifyReportRequest(done)
+	//	<-done
+	//}()
+	//return msg, nil
+	return nil, nil
 }
