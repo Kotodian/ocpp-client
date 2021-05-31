@@ -138,6 +138,15 @@ func (c *ChargeStation) ReConn() {
 func (c *ChargeStation) StartTransaction() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	if c.transaction != nil {
+		if c.transaction.eventType == message.TransactionEventEnumType_1_Started {
+			state := message.ChargingStateEnumType_1_Charging
+			c.transaction.eventType = message.TransactionEventEnumType_1_Updated
+			c.transaction.instance.ChargingState = &state
+			msg, _ := c.StatusNotificationRequest()
+			c.Resend <- msg
+		}
+	}
 	if c.connectors[0].State() == message.ConnectorStatusEnumType_1_Available {
 		c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Occupied)
 		// 通知平台枪的状态发生改变
@@ -162,12 +171,21 @@ func (c *ChargeStation) StartTransaction() error {
 	}
 }
 
-func (c *ChargeStation) StopTransaction(stoppedReason *message.ReasonEnumType_1) {
+func (c *ChargeStation) StopTransaction() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.transaction.instance.StoppedReason = stoppedReason
-	c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
-	c.transaction.eventType = message.TransactionEventEnumTypeEnded
+	// 发送updated
 	msg, _ := c.TransactionEventRequest()
+	c.Resend <- msg
+	// 拔枪
+	time.Sleep(100 * time.Millisecond)
+	c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
+	msg, _ = c.StatusNotificationRequest()
+	c.Resend <- msg
+	// 发送关闭
+	time.Sleep(100 * time.Millisecond)
+	reason := message.ReasonEnumType_1_Remote
+	c.transaction.instance.StoppedReason = &reason
+	c.transaction.eventType = message.TransactionEventEnumType_1_Ended
 	c.Resend <- msg
 }
