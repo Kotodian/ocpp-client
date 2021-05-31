@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// TransactionEventRequest 如果状态是Started的话就发一次,
+// 如果是Updated且正在充电就一直发直到停止充电为止或者连接断开为止
 func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 	if c.transaction == nil {
 		return nil, nil
