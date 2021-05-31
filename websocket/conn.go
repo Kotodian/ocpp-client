@@ -87,6 +87,9 @@ func (c *Client) Conn(addr string) error {
 	// 再次调用BootNotification
 	msg, _ = c.instance.Function("2", "", "BootNotification")
 	c.write <- msg
+	time.Sleep(1 * time.Second)
+	msg, _ = c.instance.Function("2", "", "StatusNotify")
+	c.write <- msg
 	return nil
 }
 
