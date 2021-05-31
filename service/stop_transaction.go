@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"ocpp-client/message"
+	"time"
 )
 
 func (c *ChargeStation) RequestStopTransactionResponse(msgID string, msg []byte) ([]byte, error) {
@@ -11,6 +12,10 @@ func (c *ChargeStation) RequestStopTransactionResponse(msgID string, msg []byte)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		time.Sleep(1 * time.Second)
+		c.StopTransaction()
+	}()
 	response := &message.RequestStopTransactionResponseJson{
 		Status: message.RequestStartStopStatusEnumType_3_Accepted,
 	}

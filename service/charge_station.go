@@ -177,6 +177,9 @@ func (c *ChargeStation) StartTransaction(remoteStartID ...int) error {
 func (c *ChargeStation) StopTransaction() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	if c.transaction == nil {
+		return
+	}
 	// 发送updated
 	msg, _ := c.TransactionEventRequest()
 	c.Resend <- msg
@@ -190,5 +193,7 @@ func (c *ChargeStation) StopTransaction() {
 	reason := message.ReasonEnumType_1_Remote
 	c.transaction.instance.StoppedReason = &reason
 	c.transaction.eventType = message.TransactionEventEnumType_1_Ended
+	// 通知到transaction event request停止发送
+	c.transaction.stop <- struct{}{}
 	c.Resend <- msg
 }
