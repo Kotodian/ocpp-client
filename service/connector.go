@@ -1,9 +1,14 @@
 package service
 
-import "ocpp-client/message"
+import (
+	"ocpp-client/message"
+	"sync"
+)
 
 // Connector 充电枪
 type Connector struct {
+	// 锁
+	lock sync.Mutex
 	// 充电枪序号
 	id int
 	// 状态

@@ -11,7 +11,7 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 		return nil, nil
 	}
 	request := &message.TransactionEventRequestJson{
-		EventType: message.TransactionEventEnumType_1_Ended,
+		EventType: c.transaction.eventType,
 		MeterValue: []message.MeterValueType_1{
 			message.MeterValueType_1{
 				SampledValue: []message.SampledValueType_1{
@@ -30,10 +30,8 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 				Timestamp: time.Now().Format(time.RFC3339),
 			},
 		},
-		Timestamp: time.Now().Format(time.RFC3339),
-		TransactionInfo: message.TransactionType{
-			TransactionId: c.transaction.id,
-		},
+		Timestamp:       time.Now().Format(time.RFC3339),
+		TransactionInfo: *c.transaction.instance,
 	}
 	msg, _, err := message.New("2", "TransactionEvent", request)
 	return msg, err

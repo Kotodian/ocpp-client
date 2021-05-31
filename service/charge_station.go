@@ -1,7 +1,10 @@
 package service
 
 import (
+	"errors"
+	"ocpp-client/message"
 	"reflect"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -26,6 +29,8 @@ type ChargeStation struct {
 	connectors []*Connector
 	// 充电事务 key: transactionId value: Transaction结构体抽象
 	transactions map[string]*Transaction
+	// 正在执行的transaction
+	transaction *Transaction
 }
 
 // NewChargeStation 通过sn创建实例
@@ -126,4 +131,43 @@ func (c *ChargeStation) ReConn() {
 		c.Resend <- msg
 	}
 	c.stop = make(chan struct{})
+}
+
+//
+
+func (c *ChargeStation) StartTransaction() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if c.connectors[0].State() == message.ConnectorStatusEnumType_1_Available {
+		c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Occupied)
+		// 通知平台枪的状态发生改变
+		msg, _ := c.StatusNotificationRequest()
+		// 发送给平台
+		c.Resend <- msg
+		// 等待一段时间接收response
+		time.Sleep(100 * time.Millisecond)
+		// 新建一个id
+		id := strconv.FormatInt(time.Now().Unix(), 10)
+		instance := &message.TransactionType{
+			TransactionId: id,
+		}
+		transaction := NewTransaction(instance)
+		c.transaction = transaction
+		// 发送TransactionEventResponse
+		msg, _ = c.TransactionEventRequest()
+		c.Resend <- msg
+		return nil
+	} else {
+		return errors.New("in transaction")
+	}
+}
+
+func (c *ChargeStation) StopTransaction(stoppedReason *message.ReasonEnumType_1) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.transaction.instance.StoppedReason = stoppedReason
+	c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
+	c.transaction.eventType = message.TransactionEventEnumTypeEnded
+	msg, _ := c.TransactionEventRequest()
+	c.Resend <- msg
 }

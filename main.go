@@ -14,5 +14,7 @@ func main() {
 	engine.POST("/create", api.NewChargeStation)
 	// 由桩主动发送命令
 	engine.POST("/command", api.Command)
+	// 插进电缆生成transaction
+	engine.POST("/plugin", api.PlugCable)
 	_ = engine.Run(":" + os.Getenv("PORT"))
 }

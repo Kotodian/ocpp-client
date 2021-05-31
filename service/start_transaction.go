@@ -12,8 +12,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 		return nil, err
 	}
 	response := &message.RequestStartTransactionResponseJson{
-		Status:        message.RequestStartStopStatusEnumType_1_Accepted,
-		TransactionId: request.ChargingProfile.TransactionId,
+		Status: message.RequestStartStopStatusEnumType_1_Accepted,
 	}
 	msg, _, err = message.New("3", "RemoteStartTransaction", response, msgID)
 	return msg, err

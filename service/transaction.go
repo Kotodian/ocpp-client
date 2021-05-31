@@ -1,11 +1,17 @@
 package service
 
-// Transaction 充电事务
+import "ocpp-client/message"
+
 type Transaction struct {
-	// 充电事务的id
-	id string
+	// 具体的参数
+	instance *message.TransactionType
+	// 事件类型
+	eventType message.TransactionEventEnumType_1
 }
 
-func NewTransaction(id string) *Transaction {
-	return &Transaction{id: id}
+func NewTransaction(instance *message.TransactionType) *Transaction {
+	return &Transaction{
+		instance:  instance,
+		eventType: message.TransactionEventEnumType_1_Started,
+	}
 }
