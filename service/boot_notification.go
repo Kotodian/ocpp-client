@@ -49,23 +49,23 @@ func (c *ChargeStation) BootNotificationResponse(msgID string, msg []byte) error
 		})
 	} else {
 		// 确认Heartbeat的时间间隔
-		//c.interval = time.Duration(response.Interval) * time.Second
-		//go func() {
-		//	ticker := time.NewTicker(time.Duration(response.Interval) * time.Second)
-		//	defer ticker.Stop()
-		//	for {
-		//		select {
-		//		case <-c.stop:
-		//			return
-		//		case <-ticker.C:
-		//			request, err := c.HeartbeatRequest()
-		//			if err != nil {
-		//				return
-		//			}
-		//			c.Resend <- request
-		//		}
-		//	}
-		//}()
+		c.interval = time.Duration(response.Interval) * time.Second
+		go func() {
+			ticker := time.NewTicker(time.Duration(response.Interval) * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-c.stop:
+					return
+				case <-ticker.C:
+					request, err := c.HeartbeatRequest()
+					if err != nil {
+						return
+					}
+					c.Resend <- request
+				}
+			}
+		}()
 	}
 	return nil
 

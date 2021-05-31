@@ -20,12 +20,12 @@ type ChargeStation struct {
 	stop chan struct{}
 	// 重新发送命令的channel
 	Resend chan []byte
-	// 充电事务通道
-	transactions chan Transaction
 	// 锁
 	lock sync.Mutex
-	// 目前处理的事务
-	transaction *Transaction
+	// 充电枪
+	connectors []*Connector
+	// 充电事务 key: transactionId value: Transaction结构体抽象
+	transactions map[string]*Transaction
 }
 
 // NewChargeStation 通过sn创建实例
@@ -36,8 +36,11 @@ func NewChargeStation(sn string) *ChargeStation {
 		vendorName:   "JoysonQuin",
 		model:        "JWBOX",
 		Resend:       make(chan []byte, 1),
-		transactions: make(chan Transaction, 1),
+		connectors:   make([]*Connector, 0),
+		transactions: make(map[string]*Transaction),
 	}
+	// 建立一个默认的充电枪
+	chargeStation.connectors = append(chargeStation.connectors, NewConnector(1))
 	return chargeStation
 }
 
@@ -102,46 +105,25 @@ func (c *ChargeStation) ReConn() {
 		msg, _ := c.BootNotificationRequest()
 		c.Resend <- msg
 	} else {
-		// 定时发送heartbeat命令
-		//go func() {
-		//	ticker := time.NewTicker(c.interval)
-		//	defer ticker.Stop()
-		//	for {
-		//		select {
-		//		// 如果停止了就关闭Heartbeat
-		//		case <-c.stop:
-		//			return
-		//		// 时间到了就发送Heartbeat
-		//		case <-ticker.C:
-		//			msg, _ := c.HeartbeatRequest()
-		//			c.Resend <- msg
-		//		}
-		//	}
-		//}()
+		//定时发送heartbeat命令
+		go func() {
+			ticker := time.NewTicker(c.interval)
+			defer ticker.Stop()
+			for {
+				select {
+				// 如果停止了就关闭Heartbeat
+				case <-c.stop:
+					return
+				// 时间到了就发送Heartbeat
+				case <-ticker.C:
+					msg, _ := c.HeartbeatRequest()
+					c.Resend <- msg
+				}
+			}
+		}()
 		// 发送StatusNotification
 		msg, _ := c.StatusNotificationRequest()
 		c.Resend <- msg
 	}
 	c.stop = make(chan struct{})
-}
-
-func (c *ChargeStation) SendTransactionEvent() {
-	for {
-		select {
-		case <-c.stop:
-			return
-		case transaction := <-c.transactions:
-			c.lock.Lock()
-			c.transaction = &transaction
-			event, err := c.TransactionEventRequest()
-			if err != nil {
-				goto unlock
-			}
-			if event != nil {
-				c.Resend <- event
-			}
-		unlock:
-			c.lock.Unlock()
-		}
-	}
 }
