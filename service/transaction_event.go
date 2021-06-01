@@ -26,8 +26,8 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 		request := &message.TransactionEventRequestJson{
 			EventType: c.transaction.eventType,
 			IdToken: &message.IdTokenType_6{
-				IdToken: "000000",
-				Type:    message.IdTokenEnumType_13_Central,
+				IdToken: c.transaction.idToken.IdToken,
+				Type:    message.IdTokenEnumType_13(c.transaction.idTokenType),
 			},
 			Timestamp:       time.Now().Format(time.RFC3339),
 			TransactionInfo: *c.transaction.instance,
@@ -53,8 +53,8 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 					request := &message.TransactionEventRequestJson{
 						EventType: c.transaction.eventType,
 						IdToken: &message.IdTokenType_6{
-							IdToken: "000000",
-							Type:    message.IdTokenEnumType_13_Central,
+							IdToken: c.transaction.idToken.IdToken,
+							Type:    message.IdTokenEnumType_13(c.transaction.idTokenType),
 						},
 						Timestamp:       time.Now().Format(time.RFC3339),
 						TransactionInfo: *c.transaction.instance,
@@ -70,8 +70,8 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 					request := &message.TransactionEventRequestJson{
 						EventType: c.transaction.eventType,
 						IdToken: &message.IdTokenType_6{
-							IdToken: "000000",
-							Type:    message.IdTokenEnumType_13_Central,
+							IdToken: c.transaction.idToken.IdToken,
+							Type:    message.IdTokenEnumType_13(c.transaction.idTokenType),
 						},
 						SeqNo:           c.transaction.seqNo,
 						Timestamp:       time.Now().Format(time.RFC3339),

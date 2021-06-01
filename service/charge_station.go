@@ -135,7 +135,7 @@ func (c *ChargeStation) ReConn() {
 
 //
 
-func (c *ChargeStation) StartTransaction(remoteStartID ...int) error {
+func (c *ChargeStation) StartTransaction() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if c.transaction != nil {
@@ -143,9 +143,6 @@ func (c *ChargeStation) StartTransaction(remoteStartID ...int) error {
 			state := message.ChargingStateEnumType_1_Charging
 			c.transaction.eventType = message.TransactionEventEnumType_1_Updated
 			c.transaction.instance.ChargingState = &state
-			if len(remoteStartID) > 0 {
-				c.transaction.instance.RemoteStartId = &remoteStartID[0]
-			}
 			c.SendEvent()
 		} else {
 			return errors.New("in transaction")
@@ -163,9 +160,6 @@ func (c *ChargeStation) StartTransaction(remoteStartID ...int) error {
 		id := strconv.FormatInt(time.Now().Unix(), 10)
 		instance := &message.TransactionType{
 			TransactionId: id,
-		}
-		if remoteStartID != nil {
-			instance.RemoteStartId = &remoteStartID[0]
 		}
 		transaction := NewTransaction(instance)
 		c.transaction = transaction

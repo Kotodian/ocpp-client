@@ -9,6 +9,10 @@ type Transaction struct {
 	eventType message.TransactionEventEnumType_1
 	// 自增序列号
 	seqNo int
+	// IdToken
+	idToken *message.IdTokenType_3
+	// token type
+	idTokenType message.IdTokenEnumType_7
 	// 停止充电channel stop_transaction和transaction_event交互使用
 	stop chan struct{}
 }

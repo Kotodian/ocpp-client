@@ -15,10 +15,13 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 	defer func() {
 		time.Sleep(1 * time.Second)
 		if c.transaction == nil {
-			_ = c.StartTransaction(request.RemoteStartId)
+			_ = c.StartTransaction()
 			time.Sleep(1 * time.Second)
 		}
-		_ = c.StartTransaction(request.RemoteStartId)
+		c.transaction.instance.RemoteStartId = &request.RemoteStartId
+		c.transaction.idTokenType = message.IdTokenEnumType_7_Central
+		c.transaction.idToken = &request.IdToken
+		_ = c.StartTransaction()
 	}()
 
 	response := &message.RequestStartTransactionResponseJson{
