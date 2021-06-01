@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	minElectricity = 0.00
+	minElectricity = 1.00
 	maxElectricity = 60.00
 )
 
@@ -81,7 +81,12 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 					electricity += genElectricity()
 					// 充满了
 					if electricity >= maxElectricity {
-						electricity = maxElectricity
+						c.transaction.eventType = message.TransactionEventEnumType_1_Ended
+						request.TriggerReason = message.TriggerReasonEnumType_1_EnergyLimitReached
+						request.MeterValue = genMeterValue(c.transaction.eventType)
+						msg, _, _ := message.New("2", "TransactionEvent", request)
+						c.Resend <- msg
+						return
 					}
 					request.MeterValue = genMeterValue(c.transaction.eventType, electricity)
 					msg, _, _ := message.New("2", "TransactionEvent", request)
