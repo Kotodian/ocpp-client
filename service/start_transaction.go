@@ -14,6 +14,10 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 	}
 	defer func() {
 		time.Sleep(1 * time.Second)
+		if c.transaction == nil {
+			_ = c.StartTransaction(request.RemoteStartId)
+			time.Sleep(1 * time.Second)
+		}
 		_ = c.StartTransaction(request.RemoteStartId)
 	}()
 
@@ -21,7 +25,6 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 		Status: message.RequestStartStopStatusEnumType_1_Accepted,
 	}
 	if c.transaction != nil {
-		c.transaction.instance.RemoteStartId = &request.RemoteStartId
 		response.TransactionId = &c.transaction.instance.TransactionId
 	}
 	msg, _, err = message.New("3", "RemoteStartTransaction", response, msgID)

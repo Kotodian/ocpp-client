@@ -143,11 +143,15 @@ func (c *ChargeStation) StartTransaction(remoteStartID ...int) error {
 			state := message.ChargingStateEnumType_1_Charging
 			c.transaction.eventType = message.TransactionEventEnumType_1_Updated
 			c.transaction.instance.ChargingState = &state
-			msg, _ := c.TransactionEventRequest()
-			c.Resend <- msg
+			if len(remoteStartID) > 0 {
+				c.transaction.instance.RemoteStartId = &remoteStartID[0]
+			}
+			c.SendEvent()
+		} else {
+			return errors.New("in transaction")
 		}
-	}
-	if c.connectors[0].State() == message.ConnectorStatusEnumType_1_Available {
+		return nil
+	} else if c.connectors[0].State() == message.ConnectorStatusEnumType_1_Available {
 		c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Occupied)
 		// 通知平台枪的状态发生改变
 		msg, _ := c.StatusNotificationRequest()
@@ -165,9 +169,7 @@ func (c *ChargeStation) StartTransaction(remoteStartID ...int) error {
 		}
 		transaction := NewTransaction(instance)
 		c.transaction = transaction
-		// 发送TransactionEventResponse
-		msg, _ = c.TransactionEventRequest()
-		c.Resend <- msg
+		c.SendEvent()
 		return nil
 	} else {
 		return errors.New("in transaction")
@@ -181,19 +183,17 @@ func (c *ChargeStation) StopTransaction() {
 		return
 	}
 	// 发送updated
-	msg, _ := c.TransactionEventRequest()
-	c.Resend <- msg
+	c.transaction.stop <- struct{}{}
 	// 拔枪
 	time.Sleep(100 * time.Millisecond)
 	c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
-	msg, _ = c.StatusNotificationRequest()
+	msg, _ := c.StatusNotificationRequest()
 	c.Resend <- msg
 	// 发送关闭
+	// unplug cable
 	time.Sleep(100 * time.Millisecond)
 	reason := message.ReasonEnumType_1_Remote
 	c.transaction.instance.StoppedReason = &reason
 	c.transaction.eventType = message.TransactionEventEnumType_1_Ended
-	// 通知到transaction event request停止发送
-	c.transaction.stop <- struct{}{}
-	c.Resend <- msg
+	c.SendEvent()
 }
