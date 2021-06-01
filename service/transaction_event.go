@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"ocpp-client/message"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -190,6 +191,14 @@ func genElectricity() float64 {
 }
 
 func decimal(value float64) float64 {
-	value, _ = strconv.ParseFloat(fmt.Sprintf("%.2f", value), 64)
+	temp := fmt.Sprintf("%.2f", value)
+	value, _ = strconv.ParseFloat(temp, 64)
+	inte := strings.Split(temp, ".")[0]
+	dec := strings.Split(temp, ".")[1]
+	if dec[1] == '0' {
+		dec = dec[:1] + "1"
+	}
+	temp = inte + "." + dec
+	value, _ = strconv.ParseFloat(temp, 64)
 	return value
 }
