@@ -156,7 +156,7 @@ func (c *ChargeStation) StartTransaction() error {
 			return errors.New("in transaction")
 		}
 		return nil
-	} else if c.Connectors[0].State() == message.ConnectorStatusEnumType_1_Available {
+	} else if c.Connectors[0].State == message.ConnectorStatusEnumType_1_Available {
 		c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Occupied)
 		// 通知平台枪的状态发生改变
 		msg, _ := c.StatusNotificationRequest()

@@ -26,7 +26,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 
 	response := &message.RequestStartTransactionResponseJson{}
 	if c.Transaction.EventType == message.TransactionEventEnumType_1_Updated ||
-		c.Connectors[0].State() == message.ConnectorStatusEnumType_1_Occupied {
+		c.Connectors[0].State == message.ConnectorStatusEnumType_1_Occupied {
 		response.Status = message.RequestStartStopStatusEnumType_1_Rejected
 		goto send
 	} else if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {

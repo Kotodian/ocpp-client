@@ -16,9 +16,9 @@ func (c *ChargeStation) BootNotificationRequest() ([]byte, error) {
 			ConnectorType: []string{"2"},
 		},
 		ChargingStation: message.ChargingStationType{
-			SerialNumber: &c.sn,
-			VendorName:   c.vendorName,
-			Model:        c.model,
+			SerialNumber: &c.Sn,
+			VendorName:   c.VendorName,
+			Model:        c.Model,
 		},
 	}
 	// 封装成msg

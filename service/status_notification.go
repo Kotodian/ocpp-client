@@ -8,8 +8,8 @@ import (
 
 func (c *ChargeStation) StatusNotificationRequest() ([]byte, error) {
 	request := &message.StatusNotificationRequestJson{
-		ConnectorId:     c.connectors[0].ID(),
-		ConnectorStatus: c.connectors[0].State(),
+		ConnectorId:     c.Connectors[0].ID(),
+		ConnectorStatus: c.Connectors[0].State,
 		Timestamp:       time.Now().Format(time.RFC3339),
 	}
 	msg, _, err := message.New("2", "StatusNotification", request)

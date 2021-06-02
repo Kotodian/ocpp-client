@@ -10,26 +10,22 @@ type Connector struct {
 	// 锁
 	lock sync.Mutex
 	// 充电枪序号
-	id int
+	Id int `json:"id"`
 	// 状态
-	state message.ConnectorStatusEnumType_1
+	State message.ConnectorStatusEnumType_1 `json:"state"`
 }
 
 func NewConnector(id int) *Connector {
 	return &Connector{
-		id:    id,
-		state: message.ConnectorStatusEnumType_1_Available,
+		Id:    id,
+		State: message.ConnectorStatusEnumType_1_Available,
 	}
 }
 
 func (c *Connector) ID() int {
-	return c.id
+	return c.Id
 }
 
 func (c *Connector) SetState(state message.ConnectorStatusEnumType_1) {
-	c.state = state
-}
-
-func (c *Connector) State() message.ConnectorStatusEnumType_1 {
-	return c.state
+	c.State = state
 }
