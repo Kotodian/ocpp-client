@@ -15,12 +15,13 @@ func (c *ChargeStation) RequestStopTransactionResponse(msgID string, msg []byte)
 	}
 	defer func() {
 		c.StopTransaction()
+		_ = DB.Put(ChargeStationBucket, c.ID(), c)
 		c.lock.Unlock()
 		time.Sleep(1 * time.Second)
 	}()
 	response := &message.RequestStopTransactionResponseJson{
 		Status: message.RequestStartStopStatusEnumType_3_Accepted,
 	}
-	msg, _, err = message.New("3", "RequestStopTransaction", response, msgID)
-	return msg, err
+	msg, _, _ = message.New("3", "RequestStopTransaction", response, msgID)
+	return msg, nil
 }
