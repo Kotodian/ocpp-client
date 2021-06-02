@@ -134,8 +134,8 @@ func (c *ChargeStation) ReConn() {
 		if c.Transaction == nil {
 			return
 		}
-		if c.Transaction.eventType == message.TransactionEventEnumType_1_Updated ||
-			c.Transaction.eventType == message.TransactionEventEnumType_1_Started {
+		if c.Transaction.EventType == message.TransactionEventEnumType_1_Updated ||
+			c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
 			msg, _ := c.TransactionEventRequest()
 			c.Resend <- msg
 		}
@@ -145,11 +145,11 @@ func (c *ChargeStation) ReConn() {
 
 // StartTransaction 开始充电
 func (c *ChargeStation) StartTransaction() error {
-	if c.Transaction != nil && c.Transaction.eventType != message.TransactionEventEnumType_1_Ended {
-		if c.Transaction.eventType == message.TransactionEventEnumType_1_Started {
+	if c.Transaction != nil && c.Transaction.EventType != message.TransactionEventEnumType_1_Ended {
+		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
 			state := message.ChargingStateEnumType_1_Charging
-			c.Transaction.eventType = message.TransactionEventEnumType_1_Updated
-			c.Transaction.instance.ChargingState = &state
+			c.Transaction.EventType = message.TransactionEventEnumType_1_Updated
+			c.Transaction.Instance.ChargingState = &state
 			_, _ = c.TransactionEventRequest()
 		} else {
 			return errors.New("in transaction")
@@ -179,7 +179,7 @@ func (c *ChargeStation) StartTransaction() error {
 // StopTransaction 关闭充电
 func (c *ChargeStation) StopTransaction() {
 	if c.Transaction == nil ||
-		c.Transaction.eventType == message.TransactionEventEnumType_1_Ended {
+		c.Transaction.EventType == message.TransactionEventEnumType_1_Ended {
 		return
 	}
 	// 阻塞到直到transactionEvent接收到值
@@ -193,8 +193,8 @@ func (c *ChargeStation) StopTransaction() {
 	// unplug cable
 	time.Sleep(100 * time.Millisecond)
 	reason := message.ReasonEnumType_1_Remote
-	c.Transaction.instance.StoppedReason = &reason
-	c.Transaction.eventType = message.TransactionEventEnumType_1_Ended
+	c.Transaction.Instance.StoppedReason = &reason
+	c.Transaction.EventType = message.TransactionEventEnumType_1_Ended
 	c.Electricity = minElectricity
 	c.SendEvent()
 }

@@ -18,74 +18,76 @@ const (
 // TransactionEventRequest 如果状态是Started的话就发一次,
 // 如果是Updated且正在充电就一直发直到停止充电为止或者连接断开为止
 func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
-	if c.transaction == nil {
+	if c.Transaction == nil {
 		return nil, nil
 	}
-	if c.transaction.eventType == message.TransactionEventEnumType_1_Started ||
-		c.transaction.eventType == message.TransactionEventEnumType_1_Ended {
+	if c.Transaction.EventType == message.TransactionEventEnumType_1_Started ||
+		c.Transaction.EventType == message.TransactionEventEnumType_1_Ended {
 		request := &message.TransactionEventRequestJson{
-			EventType: c.transaction.eventType,
+			EventType: c.Transaction.EventType,
 			IdToken: &message.IdTokenType_6{
-				IdToken: c.transaction.idToken.IdToken,
-				Type:    message.IdTokenEnumType_13(c.transaction.idTokenType),
+				IdToken: c.Transaction.IdToken.IdToken,
+				Type:    message.IdTokenEnumType_13(c.Transaction.IdTokenType),
 			},
 			Timestamp:       time.Now().Format(time.RFC3339),
-			TransactionInfo: *c.transaction.instance,
-			SeqNo:           c.transaction.seqNo,
+			TransactionInfo: *c.Transaction.Instance,
+			SeqNo:           c.Transaction.SeqNo,
 		}
-		meterValue := genMeterValue(c.transaction.eventType)
+		meterValue := genMeterValue(c.Transaction.EventType)
 		request.MeterValue = meterValue
 		msg, _, err := message.New("2", "TransactionEvent", request)
 		return msg, err
-	} else if c.transaction.eventType == message.TransactionEventEnumType_1_Updated {
+	} else if c.Transaction.EventType == message.TransactionEventEnumType_1_Updated {
 		go func() {
-			ticker := time.NewTicker(5 * time.Second)
+			ticker := time.NewTicker(10 * time.Second)
 			defer ticker.Stop()
 			for {
 				select {
 				case <-c.stop:
 					return
-				case <-c.transaction.stop:
+				case <-c.Transaction.stop:
 					return
 				case <-ticker.C:
 					c.lock.Lock()
-					if c.transaction.eventType == message.TransactionEventEnumType_1_Ended {
+					if c.Transaction.EventType == message.TransactionEventEnumType_1_Ended {
 						c.lock.Unlock()
 						return
 					}
 					// 发送meter value
-					c.transaction.Next()
+					c.Transaction.Next()
 					request := &message.TransactionEventRequestJson{
 						EventType: message.TransactionEventEnumType_1_Updated,
 						IdToken: &message.IdTokenType_6{
-							IdToken: c.transaction.idToken.IdToken,
-							Type:    message.IdTokenEnumType_13(c.transaction.idTokenType),
+							IdToken: c.Transaction.IdToken.IdToken,
+							Type:    message.IdTokenEnumType_13(c.Transaction.IdTokenType),
 						},
-						SeqNo:           c.transaction.seqNo,
+						SeqNo:           c.Transaction.SeqNo,
 						Timestamp:       time.Now().Format(time.RFC3339),
-						TransactionInfo: *c.transaction.instance,
+						TransactionInfo: *c.Transaction.Instance,
 					}
 					// 自动增加电量
-					c.electricity += genElectricity()
+					c.Electricity += genElectricity()
 					// 充满了
-					if c.electricity >= maxElectricity {
-						c.transaction.eventType = message.TransactionEventEnumType_1_Ended
-						c.electricity = minElectricity
+					if c.Electricity >= maxElectricity {
+						c.Transaction.EventType = message.TransactionEventEnumType_1_Ended
+						c.Electricity = minElectricity
 						request.EventType = message.TransactionEventEnumType_1_Ended
 						request.TriggerReason = message.TriggerReasonEnumType_1_EnergyLimitReached
-						request.MeterValue = genMeterValue(c.transaction.eventType)
+						request.MeterValue = genMeterValue(c.Transaction.EventType)
 						msg, _, _ := message.New("2", "TransactionEvent", request)
 						c.Resend <- msg
 						time.Sleep(1 * time.Second)
-						c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
+						c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
 						msg, _ = c.StatusNotificationRequest()
 						c.Resend <- msg
+						_ = DB.Put(ChargeStationBucket, c.ID(), c)
 						c.lock.Unlock()
 						return
 					}
-					request.MeterValue = genMeterValue(c.transaction.eventType, c.electricity)
+					request.MeterValue = genMeterValue(c.Transaction.EventType, c.Electricity)
 					msg, _, _ := message.New("2", "TransactionEvent", request)
 					c.Resend <- msg
+					_ = DB.Put(ChargeStationBucket, c.ID(), c)
 					c.lock.Unlock()
 				}
 			}
@@ -100,7 +102,7 @@ func (c *ChargeStation) TransactionEventResponse(msgID string, msg []byte) error
 }
 
 func (c *ChargeStation) SendEvent() {
-	c.transaction.Next()
+	c.Transaction.Next()
 	msg, _ := c.TransactionEventRequest()
 	c.Resend <- msg
 }

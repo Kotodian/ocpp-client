@@ -4,29 +4,29 @@ import "ocpp-client/message"
 
 type Transaction struct {
 	// 具体的参数
-	instance *message.TransactionType
+	Instance *message.TransactionType `json:"instance"`
 	// 事件类型
-	eventType message.TransactionEventEnumType_1
+	EventType message.TransactionEventEnumType_1 `json:"event_type"`
 	// 自增序列号
-	seqNo int
+	SeqNo int `json:"seq_no"`
 	// IdToken
-	idToken *message.IdTokenType_3
+	IdToken *message.IdTokenType_3 `json:"id_token"`
 	// token type
-	idTokenType message.IdTokenEnumType_7
+	IdTokenType message.IdTokenEnumType_7 `json:"id_token_type"`
 	// 停止充电channel stop_transaction和transaction_event交互使用
 	stop chan struct{}
 }
 
 func NewTransaction(instance *message.TransactionType) *Transaction {
 	return &Transaction{
-		instance:  instance,
-		eventType: message.TransactionEventEnumType_1_Started,
+		Instance:  instance,
+		EventType: message.TransactionEventEnumType_1_Started,
 		stop:      make(chan struct{}),
-		seqNo:     0,
+		SeqNo:     0,
 	}
 }
 
 // Next 每次发送Transaction都要自增该字段
 func (t *Transaction) Next() {
-	t.seqNo += 1
+	t.SeqNo += 1
 }

@@ -13,33 +13,47 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 	if err != nil {
 		return nil, err
 	}
-	defer c.lock.Unlock()
+	defer func() {
+		c.lock.Unlock()
+		if err != nil {
+			return
+		}
+		// 转换成updated并定时发送
+		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
+			_ = c.StartTransaction()
+		}
+	}()
 
 	response := &message.RequestStartTransactionResponseJson{}
-	if c.transaction.eventType == message.TransactionEventEnumType_1_Started ||
-		c.transaction.eventType == message.TransactionEventEnumType_1_Updated ||
-		c.connectors[0].State() == message.ConnectorStatusEnumType_1_Occupied {
+	if c.Transaction.EventType == message.TransactionEventEnumType_1_Updated ||
+		c.Connectors[0].State() == message.ConnectorStatusEnumType_1_Occupied {
 		response.Status = message.RequestStartStopStatusEnumType_1_Rejected
 		goto send
-	}
-	if c.transaction == nil ||
-		c.transaction.eventType == message.TransactionEventEnumType_1_Ended {
+	} else if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
+		response.Status = message.RequestStartStopStatusEnumType_1_Accepted
+		response.TransactionId = &c.Transaction.Instance.TransactionId
+		goto send
+	} else if c.Transaction == nil ||
+		c.Transaction.EventType == message.TransactionEventEnumType_1_Ended {
 		// 创建充电事件
 		_ = c.StartTransaction()
 		response.Status = message.RequestStartStopStatusEnumType_1_Accepted
-		response.TransactionId = &c.transaction.instance.TransactionId
+		response.TransactionId = &c.Transaction.Instance.TransactionId
 		// 先发送RequestStartTransactionResponse
 		msg, _, _ = message.New("3", "RemoteStartTransaction", response, msgID)
 		c.Resend <- msg
 		time.Sleep(1 * time.Second)
 		// 再发送TransactionEventRequest
-		c.transaction.instance.RemoteStartId = &request.RemoteStartId
-		c.transaction.idTokenType = message.IdTokenEnumType_7_Central
-		c.transaction.idToken = &request.IdToken
+		c.Transaction.Instance.RemoteStartId = &request.RemoteStartId
+		c.Transaction.IdTokenType = message.IdTokenEnumType_7_Central
+		c.Transaction.IdToken = &request.IdToken
 		c.SendEvent()
-		time.Sleep(1 * time.Second)
-		// 然后开始定时发送TransactionEventRequest
-		_ = c.StartTransaction()
+		// 存进数据库
+		err = DB.Put(ChargeStationBucket, c.ID(), c)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
 	}
 send:
 	msg, _, _ = message.New("3", "RemoteStartTransaction", response, msgID)
