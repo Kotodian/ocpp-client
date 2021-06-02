@@ -7,6 +7,7 @@ import (
 )
 
 func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte) ([]byte, error) {
+	c.lock.Lock()
 	request := &message.RequestStartTransactionRequestJson{}
 	err := json.Unmarshal(msg, request)
 	if err != nil {
@@ -14,7 +15,8 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 	}
 	defer func() {
 		time.Sleep(1 * time.Second)
-		if c.transaction == nil {
+		if c.transaction == nil ||
+			c.transaction.eventType == message.TransactionEventEnumType_1_Ended {
 			_ = c.StartTransaction()
 			time.Sleep(1 * time.Second)
 		}
@@ -22,6 +24,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 		c.transaction.idTokenType = message.IdTokenEnumType_7_Central
 		c.transaction.idToken = &request.IdToken
 		_ = c.StartTransaction()
+		c.lock.Unlock()
 	}()
 
 	response := &message.RequestStartTransactionResponseJson{

@@ -41,34 +41,17 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 		go func() {
 			ticker := time.NewTicker(5 * time.Second)
 			defer ticker.Stop()
-			electricity := minElectricity
 			for {
 				select {
 				case <-c.stop:
 					return
 				case <-c.transaction.stop:
-					c.transaction.Next()
-					c.transaction.eventType = message.TransactionEventEnumType_1_Updated
-					// 发送updated
-					request := &message.TransactionEventRequestJson{
-						EventType: c.transaction.eventType,
-						IdToken: &message.IdTokenType_6{
-							IdToken: c.transaction.idToken.IdToken,
-							Type:    message.IdTokenEnumType_13(c.transaction.idTokenType),
-						},
-						Timestamp:       time.Now().Format(time.RFC3339),
-						TransactionInfo: *c.transaction.instance,
-						SeqNo:           c.transaction.seqNo,
-					}
-
-					msg, _, _ := message.New("2", "TransactionEvent", request)
-					c.Resend <- msg
 					return
 				case <-ticker.C:
 					// 发送meter value
 					c.transaction.Next()
 					request := &message.TransactionEventRequestJson{
-						EventType: c.transaction.eventType,
+						EventType: message.TransactionEventEnumType_1_Updated,
 						IdToken: &message.IdTokenType_6{
 							IdToken: c.transaction.idToken.IdToken,
 							Type:    message.IdTokenEnumType_13(c.transaction.idTokenType),
@@ -78,17 +61,25 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 						TransactionInfo: *c.transaction.instance,
 					}
 					// 自动增加电量
-					electricity += genElectricity()
+					c.electricity += genElectricity()
 					// 充满了
-					if electricity >= maxElectricity {
+					if c.electricity >= maxElectricity {
+						c.lock.Lock()
 						c.transaction.eventType = message.TransactionEventEnumType_1_Ended
+						c.electricity = minElectricity
+						request.EventType = message.TransactionEventEnumType_1_Ended
 						request.TriggerReason = message.TriggerReasonEnumType_1_EnergyLimitReached
 						request.MeterValue = genMeterValue(c.transaction.eventType)
 						msg, _, _ := message.New("2", "TransactionEvent", request)
 						c.Resend <- msg
+						time.Sleep(1 * time.Second)
+						c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
+						msg, _ = c.StatusNotificationRequest()
+						c.Resend <- msg
+						c.lock.Unlock()
 						return
 					}
-					request.MeterValue = genMeterValue(c.transaction.eventType, electricity)
+					request.MeterValue = genMeterValue(c.transaction.eventType, c.electricity)
 					msg, _, _ := message.New("2", "TransactionEvent", request)
 					c.Resend <- msg
 				}

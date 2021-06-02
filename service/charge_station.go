@@ -31,6 +31,8 @@ type ChargeStation struct {
 	transactions map[string]*Transaction
 	// 正在执行的transaction
 	transaction *Transaction
+	// 电量
+	electricity float64
 }
 
 // NewChargeStation 通过sn创建实例
@@ -43,6 +45,7 @@ func NewChargeStation(sn string) *ChargeStation {
 		Resend:       make(chan []byte, 1),
 		connectors:   make([]*Connector, 0),
 		transactions: make(map[string]*Transaction),
+		electricity:  minElectricity,
 	}
 	// 建立一个默认的充电枪
 	chargeStation.connectors = append(chargeStation.connectors, NewConnector(1))
@@ -129,6 +132,15 @@ func (c *ChargeStation) ReConn() {
 		// 发送StatusNotification
 		msg, _ := c.StatusNotificationRequest()
 		c.Resend <- msg
+		time.Sleep(100 * time.Millisecond)
+		if c.transaction == nil {
+			return
+		}
+		if c.transaction.eventType == message.TransactionEventEnumType_1_Updated ||
+			c.transaction.eventType == message.TransactionEventEnumType_1_Started {
+			msg, _ := c.TransactionEventRequest()
+			c.Resend <- msg
+		}
 	}
 	c.stop = make(chan struct{})
 }
@@ -136,8 +148,6 @@ func (c *ChargeStation) ReConn() {
 //
 
 func (c *ChargeStation) StartTransaction() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
 	if c.transaction != nil && c.transaction.eventType != message.TransactionEventEnumType_1_Ended {
 		if c.transaction.eventType == message.TransactionEventEnumType_1_Started {
 			state := message.ChargingStateEnumType_1_Charging
@@ -171,13 +181,11 @@ func (c *ChargeStation) StartTransaction() error {
 }
 
 func (c *ChargeStation) StopTransaction() {
-	c.lock.Lock()
-	defer c.lock.Unlock()
 	if c.transaction == nil ||
 		c.transaction.eventType == message.TransactionEventEnumType_1_Ended {
 		return
 	}
-	// 发送updated
+	// 阻塞到直到transactionEvent接收到值
 	c.transaction.stop <- struct{}{}
 	// 拔枪
 	time.Sleep(100 * time.Millisecond)
@@ -190,5 +198,6 @@ func (c *ChargeStation) StopTransaction() {
 	reason := message.ReasonEnumType_1_Remote
 	c.transaction.instance.StoppedReason = &reason
 	c.transaction.eventType = message.TransactionEventEnumType_1_Ended
+	c.electricity = minElectricity
 	c.SendEvent()
 }

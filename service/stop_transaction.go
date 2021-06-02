@@ -7,6 +7,7 @@ import (
 )
 
 func (c *ChargeStation) RequestStopTransactionResponse(msgID string, msg []byte) ([]byte, error) {
+	c.lock.Lock()
 	request := &message.RequestStopTransactionRequestJson{}
 	err := json.Unmarshal(msg, request)
 	if err != nil {
@@ -15,6 +16,7 @@ func (c *ChargeStation) RequestStopTransactionResponse(msgID string, msg []byte)
 	defer func() {
 		time.Sleep(1 * time.Second)
 		c.StopTransaction()
+		c.lock.Unlock()
 	}()
 	response := &message.RequestStopTransactionResponseJson{
 		Status: message.RequestStartStopStatusEnumType_3_Accepted,
