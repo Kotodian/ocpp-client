@@ -36,11 +36,12 @@ type ChargeStation struct {
 // NewChargeStation 通过sn创建实例
 func NewChargeStation(sn string) *ChargeStation {
 	chargeStation := &ChargeStation{
+		lock:        sync.Mutex{},
 		Sn:          sn,
 		stop:        make(chan struct{}),
 		VendorName:  "JoysonQuin",
 		Model:       "JWBOX",
-		Resend:      make(chan []byte, 1),
+		Resend:      make(chan []byte, 100),
 		Connectors:  make([]*Connector, 0),
 		Electricity: minElectricity,
 	}
