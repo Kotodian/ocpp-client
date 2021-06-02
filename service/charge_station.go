@@ -138,12 +138,12 @@ func (c *ChargeStation) ReConn() {
 func (c *ChargeStation) StartTransaction() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if c.transaction != nil {
+	if c.transaction != nil && c.transaction.eventType != message.TransactionEventEnumType_1_Ended {
 		if c.transaction.eventType == message.TransactionEventEnumType_1_Started {
 			state := message.ChargingStateEnumType_1_Charging
 			c.transaction.eventType = message.TransactionEventEnumType_1_Updated
 			c.transaction.instance.ChargingState = &state
-			c.SendEvent()
+			_, _ = c.TransactionEventRequest()
 		} else {
 			return errors.New("in transaction")
 		}
@@ -173,7 +173,8 @@ func (c *ChargeStation) StartTransaction() error {
 func (c *ChargeStation) StopTransaction() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if c.transaction == nil {
+	if c.transaction == nil ||
+		c.transaction.eventType == message.TransactionEventEnumType_1_Ended {
 		return
 	}
 	// 发送updated
