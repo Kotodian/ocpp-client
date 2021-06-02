@@ -173,7 +173,6 @@ func (c *ChargeStation) StartTransaction() error {
 		}
 		transaction := NewTransaction(instance)
 		c.transaction = transaction
-		c.SendEvent()
 		return nil
 	} else {
 		return errors.New("in transaction")
