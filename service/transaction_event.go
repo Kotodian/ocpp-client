@@ -48,6 +48,11 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 				case <-c.transaction.stop:
 					return
 				case <-ticker.C:
+					c.lock.Lock()
+					if c.transaction.eventType == message.TransactionEventEnumType_1_Ended {
+						c.lock.Unlock()
+						return
+					}
 					// 发送meter value
 					c.transaction.Next()
 					request := &message.TransactionEventRequestJson{
@@ -64,7 +69,6 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 					c.electricity += genElectricity()
 					// 充满了
 					if c.electricity >= maxElectricity {
-						c.lock.Lock()
 						c.transaction.eventType = message.TransactionEventEnumType_1_Ended
 						c.electricity = minElectricity
 						request.EventType = message.TransactionEventEnumType_1_Ended
@@ -82,6 +86,7 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 					request.MeterValue = genMeterValue(c.transaction.eventType, c.electricity)
 					msg, _, _ := message.New("2", "TransactionEvent", request)
 					c.Resend <- msg
+					c.lock.Unlock()
 				}
 			}
 		}()
