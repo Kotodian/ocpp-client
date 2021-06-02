@@ -1,10 +1,8 @@
 package service
 
 import (
-	"errors"
 	"ocpp-client/message"
 	"reflect"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -142,60 +140,4 @@ func (c *ChargeStation) ReConn() {
 		}
 	}
 	c.stop = make(chan struct{})
-}
-
-// StartTransaction 开始充电
-func (c *ChargeStation) StartTransaction() error {
-	if c.Transaction != nil && c.Transaction.EventType != message.TransactionEventEnumType_1_Ended {
-		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
-			state := message.ChargingStateEnumType_1_Charging
-			c.Transaction.EventType = message.TransactionEventEnumType_1_Updated
-			c.Transaction.Instance.ChargingState = &state
-			_, _ = c.TransactionEventRequest()
-		} else {
-			return errors.New("in transaction")
-		}
-		return nil
-	} else if c.Connectors[0].State == message.ConnectorStatusEnumType_1_Available {
-		c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Occupied)
-		// 通知平台枪的状态发生改变
-		msg, _ := c.StatusNotificationRequest()
-		// 发送给平台
-		c.Resend <- msg
-		// 等待一段时间接收response
-		time.Sleep(100 * time.Millisecond)
-		// 新建一个id
-		id := strconv.FormatInt(time.Now().Unix(), 10)
-		instance := &message.TransactionType{
-			TransactionId: id,
-		}
-		transaction := NewTransaction(instance)
-		c.Transaction = transaction
-		return nil
-	} else {
-		return errors.New("in transaction")
-	}
-}
-
-// StopTransaction 关闭充电
-func (c *ChargeStation) StopTransaction() {
-	if c.Transaction == nil ||
-		c.Transaction.EventType == message.TransactionEventEnumType_1_Ended {
-		return
-	}
-	// 阻塞到直到transactionEvent接收到值
-	c.Transaction.stop <- struct{}{}
-	// 拔枪
-	time.Sleep(100 * time.Millisecond)
-	c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
-	msg, _ := c.StatusNotificationRequest()
-	c.Resend <- msg
-	// 发送关闭
-	// unplug cable
-	time.Sleep(100 * time.Millisecond)
-	reason := message.ReasonEnumType_1_Remote
-	c.Transaction.Instance.StoppedReason = &reason
-	c.Transaction.EventType = message.TransactionEventEnumType_1_Ended
-	c.Electricity = minElectricity
-	c.SendEvent()
 }

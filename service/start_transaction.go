@@ -2,7 +2,9 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"ocpp-client/message"
+	"strconv"
 	"time"
 )
 
@@ -20,7 +22,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 		}
 		// 转换成updated并定时发送
 		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
-			_ = c.StartTransaction()
+			_ = c.startTransaction()
 		}
 	}()
 
@@ -36,7 +38,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 	} else if c.Transaction == nil ||
 		c.Transaction.EventType == message.TransactionEventEnumType_1_Ended {
 		// 创建充电事件
-		_ = c.StartTransaction()
+		_ = c.startTransaction()
 		response.Status = message.RequestStartStopStatusEnumType_1_Accepted
 		response.TransactionId = &c.Transaction.Instance.TransactionId
 		// 先发送RequestStartTransactionResponse
@@ -59,4 +61,37 @@ send:
 	msg, _, _ = message.New("3", "RemoteStartTransaction", response, msgID)
 	c.Resend <- msg
 	return nil, nil
+}
+
+// StartTransaction 开始充电
+func (c *ChargeStation) startTransaction() error {
+	if c.Transaction != nil && c.Transaction.EventType != message.TransactionEventEnumType_1_Ended {
+		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
+			state := message.ChargingStateEnumType_1_Charging
+			c.Transaction.EventType = message.TransactionEventEnumType_1_Updated
+			c.Transaction.Instance.ChargingState = &state
+			_, _ = c.TransactionEventRequest()
+		} else {
+			return errors.New("in transaction")
+		}
+		return nil
+	} else if c.Connectors[0].State == message.ConnectorStatusEnumType_1_Available {
+		c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Occupied)
+		// 通知平台枪的状态发生改变
+		msg, _ := c.StatusNotificationRequest()
+		// 发送给平台
+		c.Resend <- msg
+		// 等待一段时间接收response
+		time.Sleep(100 * time.Millisecond)
+		// 新建一个id
+		id := strconv.FormatInt(time.Now().Unix(), 10)
+		instance := &message.TransactionType{
+			TransactionId: id,
+		}
+		transaction := NewTransaction(instance)
+		c.Transaction = transaction
+		return nil
+	} else {
+		return errors.New("in transaction")
+	}
 }
