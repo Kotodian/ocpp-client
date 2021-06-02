@@ -14,9 +14,9 @@ func (c *ChargeStation) RequestStopTransactionResponse(msgID string, msg []byte)
 		return nil, err
 	}
 	defer func() {
-		time.Sleep(1 * time.Second)
 		c.StopTransaction()
 		c.lock.Unlock()
+		time.Sleep(1 * time.Second)
 	}()
 	response := &message.RequestStopTransactionResponseJson{
 		Status: message.RequestStartStopStatusEnumType_3_Accepted,

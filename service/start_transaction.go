@@ -14,7 +14,6 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 		return nil, err
 	}
 	defer func() {
-		time.Sleep(1 * time.Second)
 		if c.transaction == nil ||
 			c.transaction.eventType == message.TransactionEventEnumType_1_Ended {
 			_ = c.StartTransaction()
@@ -25,6 +24,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 		c.transaction.idToken = &request.IdToken
 		_ = c.StartTransaction()
 		c.lock.Unlock()
+		time.Sleep(1 * time.Second)
 	}()
 
 	response := &message.RequestStartTransactionResponseJson{
