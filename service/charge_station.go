@@ -12,49 +12,47 @@ import (
 // ChargeStation 充电桩实例 具有一些属性
 type ChargeStation struct {
 	// 唯一值
-	sn string
+	Sn string `json:"sn"`
 	// 运营商名称
-	vendorName string
+	VendorName string `json:"vendor_name"`
 	// 不知道干啥用的
-	model string
+	Model string `json:"model"`
 	// heartbeat时间
 	interval time.Duration
 	// 停止channel
 	stop chan struct{}
 	// 重新发送命令的channel
-	Resend chan []byte
+	Resend chan []byte `json:"-"`
 	// 锁
 	lock sync.Mutex
 	// 充电枪
-	connectors []*Connector
-	// 充电事务 key: transactionId value: Transaction结构体抽象
-	transactions map[string]*Transaction
+	Connectors []*Connector `json:"connectors"`
 	// 正在执行的transaction
-	transaction *Transaction
+	Transaction *Transaction `json:"transaction"`
 	// 电量
-	electricity float64
+	Electricity float64 `json:"electricity"`
 }
 
 // NewChargeStation 通过sn创建实例
 func NewChargeStation(sn string) *ChargeStation {
 	chargeStation := &ChargeStation{
-		sn:           sn,
-		stop:         make(chan struct{}),
-		vendorName:   "JoysonQuin",
-		model:        "JWBOX",
-		Resend:       make(chan []byte, 1),
-		connectors:   make([]*Connector, 0),
-		transactions: make(map[string]*Transaction),
-		electricity:  minElectricity,
+		Sn:          sn,
+		stop:        make(chan struct{}),
+		VendorName:  "JoysonQuin",
+		Model:       "JWBOX",
+		Resend:      make(chan []byte, 1),
+		Connectors:  make([]*Connector, 0),
+		Electricity: minElectricity,
 	}
+	chargeStation.Connectors = append(chargeStation.Connectors, NewConnector(1))
+	_ = DB.Put(ChargeStationBucket, sn, chargeStation)
 	// 建立一个默认的充电枪
-	chargeStation.connectors = append(chargeStation.connectors, NewConnector(1))
 	return chargeStation
 }
 
 // ID 充电桩唯一值
 func (c *ChargeStation) ID() string {
-	return c.sn
+	return c.Sn
 }
 
 // Function 调用指定命令 parameters代表参数一般就是payload,由桩主动发起的命令不需要参数以及messageID
@@ -133,11 +131,11 @@ func (c *ChargeStation) ReConn() {
 		msg, _ := c.StatusNotificationRequest()
 		c.Resend <- msg
 		time.Sleep(100 * time.Millisecond)
-		if c.transaction == nil {
+		if c.Transaction == nil {
 			return
 		}
-		if c.transaction.eventType == message.TransactionEventEnumType_1_Updated ||
-			c.transaction.eventType == message.TransactionEventEnumType_1_Started {
+		if c.Transaction.eventType == message.TransactionEventEnumType_1_Updated ||
+			c.Transaction.eventType == message.TransactionEventEnumType_1_Started {
 			msg, _ := c.TransactionEventRequest()
 			c.Resend <- msg
 		}
@@ -145,21 +143,20 @@ func (c *ChargeStation) ReConn() {
 	c.stop = make(chan struct{})
 }
 
-//
-
+// StartTransaction 开始充电
 func (c *ChargeStation) StartTransaction() error {
-	if c.transaction != nil && c.transaction.eventType != message.TransactionEventEnumType_1_Ended {
-		if c.transaction.eventType == message.TransactionEventEnumType_1_Started {
+	if c.Transaction != nil && c.Transaction.eventType != message.TransactionEventEnumType_1_Ended {
+		if c.Transaction.eventType == message.TransactionEventEnumType_1_Started {
 			state := message.ChargingStateEnumType_1_Charging
-			c.transaction.eventType = message.TransactionEventEnumType_1_Updated
-			c.transaction.instance.ChargingState = &state
+			c.Transaction.eventType = message.TransactionEventEnumType_1_Updated
+			c.Transaction.instance.ChargingState = &state
 			_, _ = c.TransactionEventRequest()
 		} else {
 			return errors.New("in transaction")
 		}
 		return nil
-	} else if c.connectors[0].State() == message.ConnectorStatusEnumType_1_Available {
-		c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Occupied)
+	} else if c.Connectors[0].State() == message.ConnectorStatusEnumType_1_Available {
+		c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Occupied)
 		// 通知平台枪的状态发生改变
 		msg, _ := c.StatusNotificationRequest()
 		// 发送给平台
@@ -172,31 +169,32 @@ func (c *ChargeStation) StartTransaction() error {
 			TransactionId: id,
 		}
 		transaction := NewTransaction(instance)
-		c.transaction = transaction
+		c.Transaction = transaction
 		return nil
 	} else {
 		return errors.New("in transaction")
 	}
 }
 
+// StopTransaction 关闭充电
 func (c *ChargeStation) StopTransaction() {
-	if c.transaction == nil ||
-		c.transaction.eventType == message.TransactionEventEnumType_1_Ended {
+	if c.Transaction == nil ||
+		c.Transaction.eventType == message.TransactionEventEnumType_1_Ended {
 		return
 	}
 	// 阻塞到直到transactionEvent接收到值
-	c.transaction.stop <- struct{}{}
+	c.Transaction.stop <- struct{}{}
 	// 拔枪
 	time.Sleep(100 * time.Millisecond)
-	c.connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
+	c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
 	msg, _ := c.StatusNotificationRequest()
 	c.Resend <- msg
 	// 发送关闭
 	// unplug cable
 	time.Sleep(100 * time.Millisecond)
 	reason := message.ReasonEnumType_1_Remote
-	c.transaction.instance.StoppedReason = &reason
-	c.transaction.eventType = message.TransactionEventEnumType_1_Ended
-	c.electricity = minElectricity
+	c.Transaction.instance.StoppedReason = &reason
+	c.Transaction.eventType = message.TransactionEventEnumType_1_Ended
+	c.Electricity = minElectricity
 	c.SendEvent()
 }
