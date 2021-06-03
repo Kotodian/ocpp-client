@@ -22,7 +22,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 		}
 		// 转换成updated并定时发送
 		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
-			_ = c.updateTransaction()
+			_ = c.UpdateTransaction()
 		}
 	}()
 
@@ -38,7 +38,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 	} else if c.Transaction == nil ||
 		c.Transaction.EventType == message.TransactionEventEnumType_1_Ended {
 		// 创建充电事件
-		_ = c.startTransaction()
+		_ = c.StartTransaction()
 		response.Status = message.RequestStartStopStatusEnumType_1_Accepted
 		response.TransactionId = &c.Transaction.Instance.TransactionId
 		// 先发送RequestStartTransactionResponse
@@ -64,7 +64,7 @@ send:
 }
 
 // StartTransaction 开始充电
-func (c *ChargeStation) startTransaction() error {
+func (c *ChargeStation) StartTransaction() error {
 	if c.Connectors[0].State == message.ConnectorStatusEnumType_1_Available {
 		c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Occupied)
 		// 通知平台枪的状态发生改变
@@ -86,7 +86,7 @@ func (c *ChargeStation) startTransaction() error {
 	}
 }
 
-func (c *ChargeStation) updateTransaction() error {
+func (c *ChargeStation) UpdateTransaction() error {
 	if c.Transaction != nil && c.Transaction.EventType != message.TransactionEventEnumType_1_Ended {
 		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
 			state := message.ChargingStateEnumType_1_Charging
