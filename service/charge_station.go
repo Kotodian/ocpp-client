@@ -147,3 +147,11 @@ func (c *ChargeStation) ReConn() {
 	}
 	c.stop = make(chan struct{})
 }
+
+// InTransaction 判断是否在充电中
+func (c *ChargeStation) InTransaction() bool {
+	c.lock.Unlock()
+	defer c.lock.Unlock()
+	return c.Transaction.EventType == message.TransactionEventEnumType_1_Started ||
+		c.Transaction.EventType == message.TransactionEventEnumType_1_Updated
+}
