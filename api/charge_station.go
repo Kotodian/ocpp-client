@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
+	"net/http"
 	"net/url"
 	"ocpp-client/service"
 	"ocpp-client/websocket"
@@ -12,6 +13,15 @@ import (
 	"strings"
 	"time"
 )
+
+func ListChargeStation(c *gin.Context) {
+	list, err := service.ListChargeStation()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusOK, list)
+}
 
 func NewChargeStation(c *gin.Context) {
 	request := &struct {

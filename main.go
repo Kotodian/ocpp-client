@@ -9,6 +9,8 @@ import (
 
 func main() {
 	engine := gin.Default()
+	// 充电桩列表
+	engine.POST("/station", api.ListChargeStation)
 	// 创建charge station websocket
 	// ps. sn是填前缀后续全部自己生成
 	engine.POST("/create", api.NewChargeStation)
