@@ -3,7 +3,8 @@ package websocket
 import (
 	"github.com/gorilla/websocket"
 	cmap "github.com/orcaman/concurrent-map"
-	"log"
+	"github.com/sirupsen/logrus"
+	"ocpp-client/log"
 	"ocpp-client/message"
 	"ocpp-client/service"
 	"strings"
@@ -16,6 +17,8 @@ var Cache cmap.ConcurrentMap
 
 // Client 桩的websocket客户端
 type Client struct {
+	// 日志
+	entry *logrus.Entry
 	// 连接地址
 	addr string
 	// 锁
@@ -58,7 +61,9 @@ func NewClient(instance *service.ChargeStation) *Client {
 		write:     make(chan []byte, 100),
 		read:      make(chan []byte, 100),
 		connected: false,
+		entry:     log.NewEntry(),
 	}
+	defer client.withSN(instance.ID())
 	// 存储的缓存
 	if _, ok := Cache.Get(instance.ID()); ok {
 		return nil
@@ -74,6 +79,12 @@ func (c *Client) Conn(addr string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err != nil {
+			return
+		}
+		c.withAddr(addr)
+	}()
 	// 如果没有实例 就返回
 	if c.instance == nil {
 		return nil
@@ -96,7 +107,7 @@ func (c *Client) Conn(addr string) error {
 	msg, _ = c.instance.Function("2", "", "BootNotification")
 	c.write <- msg
 	time.Sleep(1 * time.Second)
-	msg, _ = c.instance.Function("2", "", "StatusNotify")
+	msg, _ = c.instance.Function("2", "", "StatusNotification")
 	c.write <- msg
 	return nil
 }
@@ -107,6 +118,11 @@ func (c *Client) reConn() error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err != nil {
+			c.withAddr(c.addr)
+		}
+	}()
 	c.conn = conn
 	c.close = make(chan struct{})
 	c.SetConnected(true)
@@ -126,11 +142,13 @@ func (c *Client) writePump() {
 		case <-c.close:
 			return
 		case msg := <-c.write:
+			c.entry.Infoln(msg)
 			err := c.conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
 				return
 			}
 		case msg := <-c.instance.Resend:
+			c.entry.Infoln(msg)
 			err := c.conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
 				return
@@ -157,7 +175,6 @@ func (c *Client) readPump() {
 			if len(msg) == 0 {
 				continue
 			}
-			log.Println(string(msg))
 			// 判断数据类型
 			switch typ {
 			// 如果ping,就返回pong数据
@@ -170,6 +187,8 @@ func (c *Client) readPump() {
 			case websocket.TextMessage:
 				// 可能发过来多条命令以 \n做拆分
 				for _, m := range strings.Split(string(msg), "\n") {
+					// 记录从ac-ocpp发过来的数据
+					c.entry.Infoln(m)
 					// 获取 messageType,messageID, action, payload
 					typ, messageID, action, payload := message.Parse([]byte(m))
 					// 对callError就不管了
