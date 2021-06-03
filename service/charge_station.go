@@ -150,8 +150,18 @@ func (c *ChargeStation) ReConn() {
 
 // InTransaction 判断是否在充电中
 func (c *ChargeStation) InTransaction() bool {
+	if c.Transaction == nil {
+		return false
+	}
+	return (c.Transaction.EventType == message.TransactionEventEnumType_1_Started ||
+		c.Transaction.EventType == message.TransactionEventEnumType_1_Updated) &&
+		c.Connectors[0].State != message.ConnectorStatusEnumType_1_Available
+}
+
+func (c *ChargeStation) Lock() {
+	c.lock.Lock()
+}
+
+func (c *ChargeStation) Unlock() {
 	c.lock.Unlock()
-	defer c.lock.Unlock()
-	return c.Transaction.EventType == message.TransactionEventEnumType_1_Started ||
-		c.Transaction.EventType == message.TransactionEventEnumType_1_Updated
 }
