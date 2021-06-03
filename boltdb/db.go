@@ -14,7 +14,7 @@ type Codec interface {
 type BoltManager struct {
 	db              *bolt.DB
 	codec           Codec
-	bucketValueType map[string]reflect.Type
+	bucketValueType map[string][]reflect.Type
 }
 
 type defaultCodec struct{}
@@ -31,8 +31,14 @@ func (d *defaultCodec) Unmarshal(data []byte, value interface{}) error {
 	return json.Unmarshal(data, value)
 }
 
+func NewBucket(structType interface{}, structSliceType interface{}) []reflect.Type {
+	bucketValueType := make([]reflect.Type, 0)
+	bucketValueType = append(bucketValueType, reflect.TypeOf(structType), reflect.TypeOf(structSliceType))
+	return bucketValueType
+}
+
 // New 创建库管理
-func New(path string, bucket map[string]reflect.Type) (*BoltManager, error) {
+func New(path string, bucket map[string][]reflect.Type) (*BoltManager, error) {
 	db, err := bolt.Open(path, 0644, nil)
 	if err != nil {
 		return nil, err
@@ -86,12 +92,32 @@ func (b *BoltManager) Put(bucketName string, key string, value interface{}) (err
 	return
 }
 
+func (b *BoltManager) List(bucketName string) (interface{}, error) {
+	slice := reflect.MakeSlice(b.bucketValueType[bucketName][1], 0, 100)
+	err := b.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketName))
+		return bucket.ForEach(func(k, v []byte) error {
+			value := reflect.New(b.bucketValueType[bucketName][0]).Interface()
+			err := b.codec.Unmarshal(v, value)
+			if err != nil {
+				return err
+			}
+			slice = reflect.Append(slice, reflect.ValueOf(value))
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return slice.Interface(), nil
+}
+
 // ForEach 对每个键值对做处理
 func (b *BoltManager) ForEach(bucketName string, handle func(k string, v interface{}) error) (err error) {
 	err = b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketName))
 		err := bucket.ForEach(func(k, v []byte) error {
-			value := reflect.New(b.bucketValueType[bucketName]).Interface()
+			value := reflect.New(b.bucketValueType[bucketName][0]).Interface()
 			err := b.codec.Unmarshal(v, value)
 			if err != nil {
 				return err

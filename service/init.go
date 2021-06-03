@@ -12,8 +12,8 @@ var (
 
 func init() {
 	var err error
-	buckets := make(map[string]reflect.Type)
-	buckets[ChargeStationBucket] = reflect.TypeOf(&ChargeStation{})
+	buckets := make(map[string][]reflect.Type)
+	buckets[ChargeStationBucket] = boltdb.NewBucket(ChargeStation{}, []*ChargeStation{})
 	DB, err = boltdb.New("ocpp", buckets)
 	if err != nil {
 		panic(err)
