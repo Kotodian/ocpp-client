@@ -29,12 +29,16 @@ func TransactionEvent(c *gin.Context) {
 		return
 	}
 	conn.Instance().Lock()
+	var inTransaction bool
 	defer func() {
 		conn.Instance().Unlock()
-		_ = conn.Instance().UpdateTransaction()
+		if !inTransaction {
+			_ = conn.Instance().UpdateTransaction()
+		}
 	}()
 	// 如果在充电中
 	if conn.Instance().InTransaction() {
+		inTransaction = true
 		c.JSON(http.StatusBadRequest, errors.New("in transaction"))
 		return
 	}
