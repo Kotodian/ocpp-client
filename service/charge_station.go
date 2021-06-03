@@ -1,6 +1,8 @@
 package service
 
 import (
+	"github.com/sirupsen/logrus"
+	"ocpp-client/log"
 	"ocpp-client/message"
 	"reflect"
 	"sync"
@@ -9,6 +11,8 @@ import (
 
 // ChargeStation 充电桩实例 具有一些属性
 type ChargeStation struct {
+	// 日志
+	entry *logrus.Entry
 	// 唯一值
 	Sn string `json:"sn"`
 	// 运营商名称
@@ -42,7 +46,9 @@ func NewChargeStation(sn string) *ChargeStation {
 		Resend:      make(chan []byte, 100),
 		Connectors:  make([]*Connector, 0),
 		Electricity: minElectricity,
+		entry:       log.NewEntry(),
 	}
+	defer chargeStation.withSN(sn)
 	chargeStation.Connectors = append(chargeStation.Connectors, NewConnector(1))
 	_ = DB.Put(ChargeStationBucket, sn, chargeStation)
 	// 建立一个默认的充电枪

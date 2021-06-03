@@ -69,6 +69,7 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 					c.Electricity += genElectricity()
 					// 充满了
 					if c.Electricity >= maxElectricity {
+						c.Transaction.entry.Infof("%s 充电完成 电量: %f", c.Sn, maxElectricity)
 						c.Transaction.EventType = message.TransactionEventEnumType_1_Ended
 						c.Electricity = minElectricity
 						request.EventType = message.TransactionEventEnumType_1_Ended
@@ -84,6 +85,7 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 						c.lock.Unlock()
 						return
 					}
+					c.Transaction.entry.Infof("%s 充电中 电量: %f", c.Sn, c.Electricity)
 					request.MeterValue = genMeterValue(c.Transaction.EventType, c.Electricity)
 					msg, _, _ := message.New("2", "TransactionEvent", request)
 					c.Resend <- msg

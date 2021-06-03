@@ -1,8 +1,14 @@
 package service
 
-import "ocpp-client/message"
+import (
+	"github.com/sirupsen/logrus"
+	"ocpp-client/log"
+	"ocpp-client/message"
+)
 
 type Transaction struct {
+	// 日志
+	entry *logrus.Entry
 	// 具体的参数
 	Instance *message.TransactionType `json:"instance"`
 	// 事件类型
@@ -18,12 +24,15 @@ type Transaction struct {
 }
 
 func NewTransaction(instance *message.TransactionType) *Transaction {
-	return &Transaction{
+	transaction := &Transaction{
 		Instance:  instance,
 		EventType: message.TransactionEventEnumType_1_Started,
 		stop:      make(chan struct{}),
 		SeqNo:     0,
+		entry:     log.NewEntry(),
 	}
+	defer transaction.withID(instance.TransactionId)
+	return transaction
 }
 
 // Next 每次发送Transaction都要自增该字段
