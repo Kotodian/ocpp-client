@@ -16,7 +16,7 @@ import (
 
 // ListChargeStation 充电桩列表
 // @method: post
-// @group: /station
+// @group: ChargeStation
 // @router: /list
 func ListChargeStation(c *gin.Context) {
 	list, err := service.ListChargeStation()
@@ -29,8 +29,8 @@ func ListChargeStation(c *gin.Context) {
 
 // NewChargeStation 创建充电桩
 // @method: post
-// @group: /station
-// @router: /list
+// @group: ChargeStation
+// @router: /add
 func NewChargeStation(c *gin.Context) {
 	request := &struct {
 		// 前缀
@@ -84,7 +84,7 @@ func NewChargeStation(c *gin.Context) {
 
 // Command 发送充电桩命令
 // @method: post
-// @group: /station
+// @group: ChargeStation
 // @router: /command
 func Command(c *gin.Context) {
 	request := &struct {

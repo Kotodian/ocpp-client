@@ -3,7 +3,7 @@ module ocpp-client
 go 1.16
 
 require (
-	github.com/Kotodian/router-annotation v0.1.1 // indirect
+	github.com/Kotodian/router-annotation v0.2.0 // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/gin-gonic/gin v1.7.2
 	github.com/gorilla/websocket v1.4.2

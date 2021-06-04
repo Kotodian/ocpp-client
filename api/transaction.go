@@ -9,7 +9,7 @@ import (
 
 // TransactionEvent 充电
 // @method: post
-// @group: /transaction
+// @group: Transaction
 // @router: /add
 func TransactionEvent(c *gin.Context) {
 	request := &struct {
