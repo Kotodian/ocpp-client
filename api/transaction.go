@@ -8,6 +8,9 @@ import (
 )
 
 // TransactionEvent 充电
+// @method: post
+// @group: /transaction
+// @router: /add
 func TransactionEvent(c *gin.Context) {
 	request := &struct {
 		SN string `json:"sn"`

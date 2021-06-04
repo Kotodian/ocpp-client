@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/sirupsen/logrus"
-	"ocpp-client/log"
+	"ocpp-client/init"
 	"ocpp-client/message"
 )
 
@@ -29,7 +29,7 @@ func NewTransaction(instance *message.TransactionType) *Transaction {
 		EventType: message.TransactionEventEnumType_1_Started,
 		stop:      make(chan struct{}),
 		SeqNo:     0,
-		entry:     log.NewEntry(),
+		entry:     init.NewEntry(),
 	}
 	defer transaction.withID(instance.TransactionId)
 	return transaction

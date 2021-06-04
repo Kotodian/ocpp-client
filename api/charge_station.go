@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+// ListChargeStation 充电桩列表
+// @method: post
+// @group: /station
+// @router: /list
 func ListChargeStation(c *gin.Context) {
 	list, err := service.ListChargeStation()
 	if err != nil {
@@ -23,6 +27,10 @@ func ListChargeStation(c *gin.Context) {
 	c.JSON(http.StatusOK, list)
 }
 
+// NewChargeStation 创建充电桩
+// @method: post
+// @group: /station
+// @router: /list
 func NewChargeStation(c *gin.Context) {
 	request := &struct {
 		// 前缀
@@ -74,6 +82,10 @@ func NewChargeStation(c *gin.Context) {
 	c.JSON(200, "success")
 }
 
+// Command 发送充电桩命令
+// @method: post
+// @group: /station
+// @router: /command
 func Command(c *gin.Context) {
 	request := &struct {
 		SN      string `json:"sn"`

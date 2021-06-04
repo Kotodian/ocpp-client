@@ -4,7 +4,7 @@ import (
 	"github.com/gorilla/websocket"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/sirupsen/logrus"
-	"ocpp-client/log"
+	"ocpp-client/init"
 	"ocpp-client/message"
 	"ocpp-client/service"
 	"strings"
@@ -61,7 +61,7 @@ func NewClient(instance *service.ChargeStation) *Client {
 		write:     make(chan []byte, 100),
 		read:      make(chan []byte, 100),
 		connected: false,
-		entry:     log.NewEntry(),
+		entry:     init.NewEntry(),
 	}
 	defer client.withSN(instance.ID())
 	// 存储的缓存
