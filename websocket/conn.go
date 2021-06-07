@@ -4,9 +4,11 @@ import (
 	"github.com/gorilla/websocket"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/sirupsen/logrus"
+	"net/url"
 	"ocpp-client/log"
 	"ocpp-client/message"
 	"ocpp-client/service"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -101,6 +103,14 @@ func (c *Client) Conn(addr string) error {
 
 // ReConn 重新建立连接
 func (c *Client) ReConn() error {
+	if c.addr == "" {
+		addr := &url.URL{
+			Scheme: "ws",
+			Host:   os.Getenv("addr"),
+			Path:   "/ocpp/" + c.instance.ID(),
+		}
+		c.addr = addr.String()
+	}
 	conn, _, err := c.dialer.Dial(c.addr, nil)
 	if err != nil {
 		return err
@@ -117,7 +127,7 @@ func (c *Client) ReConn() error {
 	go c.readPump()
 	// 睡一秒保证两个协程建立好
 	time.Sleep(1 * time.Second)
-	c.instance.ReConn()
+	go c.instance.ReConn()
 	return nil
 }
 
@@ -129,13 +139,13 @@ func (c *Client) writePump() {
 		case <-c.close:
 			return
 		case msg := <-c.write:
-			c.entry.Infoln(msg)
+			c.entry.Infoln(string(msg))
 			err := c.conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
 				return
 			}
 		case msg := <-c.instance.Resend:
-			c.entry.Infoln(msg)
+			c.entry.Infoln(string(msg))
 			err := c.conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
 				return

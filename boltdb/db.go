@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/boltdb/bolt"
 	"reflect"
+	"sync/atomic"
 )
 
 type Codec interface {
@@ -21,7 +22,9 @@ type Interface interface {
 }
 
 type BoltManager struct {
+	path        string
 	db          *bolt.DB
+	connected   int32
 	codec       Codec
 	bucketsType map[string]Interface
 }
@@ -51,6 +54,7 @@ func New(path string, data ...Interface) (*BoltManager, error) {
 	}
 	manager := &BoltManager{
 		db:          db,
+		path:        path,
 		codec:       NewJsonCodec(),
 		bucketsType: make(map[string]Interface),
 	}
@@ -68,11 +72,13 @@ func New(path string, data ...Interface) (*BoltManager, error) {
 	if err != nil {
 		return nil, err
 	}
+	manager.SetConnected(true)
 	return manager, nil
 }
 
 // Close 关闭连接
 func (b *BoltManager) Close() error {
+	b.SetConnected(false)
 	return b.db.Close()
 }
 
@@ -90,6 +96,11 @@ func (b *BoltManager) RemoveBucket(bucketName string) (err error) {
 
 // Put 往Bucket里增加键值对
 func (b *BoltManager) Put(key string, value Interface) (err error) {
+	err = b.conn()
+	if err != nil {
+		return err
+	}
+	defer b.Close()
 	err = b.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(value.BucketName()))
 		msg, err := b.codec.Marshal(value)
@@ -102,8 +113,13 @@ func (b *BoltManager) Put(key string, value Interface) (err error) {
 }
 
 func (b *BoltManager) List(bucketName string) (interface{}, error) {
+	err := b.conn()
+	if err != nil {
+		return nil, err
+	}
+	defer b.Close()
 	slice := reflect.MakeSlice(b.bucketsType[bucketName].SliceType(), 0, 100)
-	err := b.db.View(func(tx *bolt.Tx) error {
+	err = b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketName))
 		return bucket.ForEach(func(k, v []byte) error {
 			value := reflect.New(b.bucketsType[bucketName].Type()).Interface()
@@ -123,6 +139,11 @@ func (b *BoltManager) List(bucketName string) (interface{}, error) {
 
 // ForEach 对每个键值对做处理
 func (b *BoltManager) ForEach(bucketName string, handle func(k string, v interface{}) error) (err error) {
+	err = b.conn()
+	if err != nil {
+		return err
+	}
+	defer b.Close()
 	err = b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketName))
 		err := bucket.ForEach(func(k, v []byte) error {
@@ -139,6 +160,11 @@ func (b *BoltManager) ForEach(bucketName string, handle func(k string, v interfa
 }
 
 func (b *BoltManager) Get(key string, value Interface) (err error) {
+	err = b.conn()
+	if err != nil {
+		return err
+	}
+	defer b.Close()
 	err = b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(value.BucketName()))
 		return b.codec.Unmarshal(bucket.Get([]byte(key)), value)
@@ -148,9 +174,38 @@ func (b *BoltManager) Get(key string, value Interface) (err error) {
 
 // Remove 删除指定的键
 func (b *BoltManager) Remove(bucketName string, key string) (err error) {
+	err = b.conn()
+	if err != nil {
+		return err
+	}
+	defer b.Close()
 	err = b.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketName))
 		return bucket.DeleteBucket([]byte(key))
 	})
 	return
+}
+
+func (b *BoltManager) conn() error {
+	if b.Connected() {
+		return nil
+	}
+	db, err := bolt.Open(b.path, 0644, nil)
+	if err != nil {
+		return err
+	}
+	b.db = db
+	return nil
+}
+
+func (b *BoltManager) Connected() bool {
+	return atomic.LoadInt32(&b.connected) == 1
+}
+
+func (b *BoltManager) SetConnected(isConnected bool) {
+	if isConnected {
+		atomic.StoreInt32(&b.connected, 1)
+	} else {
+		atomic.StoreInt32(&b.connected, 0)
+	}
 }

@@ -62,7 +62,6 @@ func NewChargeStation(sn string) *ChargeStation {
 	}
 	defer chargeStation.withSN(sn)
 	chargeStation.Connectors = append(chargeStation.Connectors, NewConnector(1))
-	_ = DB.Put(sn, chargeStation)
 	// 建立一个默认的充电枪
 	return chargeStation
 }
@@ -127,6 +126,11 @@ func (c *ChargeStation) ReConn() {
 	if c.interval == 0 {
 		msg, _ := c.BootNotificationRequest()
 		c.Resend <- msg
+		time.Sleep(100 * time.Millisecond)
+		// 发送StatusNotification
+		msg, _ = c.StatusNotificationRequest()
+		c.Resend <- msg
+		time.Sleep(100 * time.Millisecond)
 	} else {
 		//定时发送heartbeat命令
 		go func() {

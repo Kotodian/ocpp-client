@@ -2,13 +2,18 @@ package initialize
 
 import (
 	"github.com/sirupsen/logrus"
+	"io"
 	"ocpp-client/log"
 	"os"
 )
 
-func init() {
+func initlog() {
 	log.Logger = logrus.New()
-	log.Logger.SetOutput(os.Stdout)
+	file, err := os.OpenFile(os.Getenv("WIN_LOG_PATH"), os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModeAppend|os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	log.Logger.SetOutput(io.MultiWriter(os.Stdout, file))
 	log.Logger.SetLevel(logrus.DebugLevel)
 	log.Logger.SetFormatter(&logrus.JSONFormatter{})
 }

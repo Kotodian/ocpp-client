@@ -57,9 +57,15 @@ func NewChargeStation(c *gin.Context) {
 	}
 	go func() {
 		for i := 1; i <= request.Nums; i++ {
-			sn := request.SN + fmt.Sprint(i)
-			sn = formatSN(sn)
+			var sn string
+			if len(request.SN) != 11 {
+				sn := request.SN + fmt.Sprint(i)
+				sn = formatSN(sn)
+			} else {
+				sn = request.SN
+			}
 			station := service.NewChargeStation(sn)
+			_ = service.DB.Put(sn, station)
 			client := websocket.NewClient(station)
 			if client == nil {
 				continue

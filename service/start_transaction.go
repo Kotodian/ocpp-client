@@ -27,15 +27,8 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 	}()
 
 	response := &message.RequestStartTransactionResponseJson{}
-	if c.Transaction.EventType == message.TransactionEventEnumType_1_Updated ||
-		c.Connectors[0].State == message.ConnectorStatusEnumType_1_Occupied {
-		response.Status = message.RequestStartStopStatusEnumType_1_Rejected
-		goto send
-	} else if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
-		response.Status = message.RequestStartStopStatusEnumType_1_Accepted
-		response.TransactionId = &c.Transaction.Instance.TransactionId
-		goto send
-	} else if c.Transaction == nil ||
+
+	if c.Transaction == nil ||
 		c.Transaction.EventType == message.TransactionEventEnumType_1_Ended {
 		// 创建充电事件
 		_ = c.StartTransaction()
@@ -56,6 +49,14 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 			return nil, err
 		}
 		return nil, nil
+	} else if c.Transaction.EventType == message.TransactionEventEnumType_1_Updated ||
+		c.Connectors[0].State == message.ConnectorStatusEnumType_1_Occupied {
+		response.Status = message.RequestStartStopStatusEnumType_1_Rejected
+		goto send
+	} else if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
+		response.Status = message.RequestStartStopStatusEnumType_1_Accepted
+		response.TransactionId = &c.Transaction.Instance.TransactionId
+		goto send
 	}
 send:
 	msg, _, _ = message.New("3", "RemoteStartTransaction", response, msgID)
