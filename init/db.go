@@ -7,7 +7,7 @@ import (
 
 func init() {
 	var err error
-	service.DB, err = boltdb.New("ocpp", &service.ChargeStation{})
+	service.DB, err = boltdb.New("ocpp.db", &service.ChargeStation{})
 	if err != nil {
 		panic(err)
 	}
