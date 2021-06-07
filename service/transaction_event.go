@@ -81,7 +81,7 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 						c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
 						msg, _ = c.StatusNotificationRequest()
 						c.Resend <- msg
-						_ = DB.Put(ChargeStationBucket, c.ID(), c)
+						_ = DB.Put(c.BucketName(), c.ID(), c)
 						c.lock.Unlock()
 						return
 					}
@@ -89,7 +89,7 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 					request.MeterValue = genMeterValue(c.Transaction.EventType, c.Electricity)
 					msg, _, _ := message.New("2", "TransactionEvent", request)
 					c.Resend <- msg
-					_ = DB.Put(ChargeStationBucket, c.ID(), c)
+					_ = DB.Put(c.BucketName(), c.ID(), c)
 					c.lock.Unlock()
 				}
 			}

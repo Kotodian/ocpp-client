@@ -35,6 +35,18 @@ type ChargeStation struct {
 	Electricity float64 `json:"electricity"`
 }
 
+func (c *ChargeStation) BucketName() string {
+	return "ChargeStation"
+}
+
+func (c *ChargeStation) Type() reflect.Type {
+	return reflect.TypeOf(ChargeStation{})
+}
+
+func (c *ChargeStation) SliceType() reflect.Type {
+	return reflect.TypeOf([]*ChargeStation{})
+}
+
 // NewChargeStation 通过sn创建实例
 func NewChargeStation(sn string) *ChargeStation {
 	chargeStation := &ChargeStation{
@@ -50,7 +62,7 @@ func NewChargeStation(sn string) *ChargeStation {
 	}
 	defer chargeStation.withSN(sn)
 	chargeStation.Connectors = append(chargeStation.Connectors, NewConnector(1))
-	_ = DB.Put(ChargeStationBucket, sn, chargeStation)
+	_ = DB.Put(chargeStation.BucketName(), sn, chargeStation)
 	// 建立一个默认的充电枪
 	return chargeStation
 }

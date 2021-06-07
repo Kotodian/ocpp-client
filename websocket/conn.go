@@ -42,7 +42,7 @@ type Client struct {
 // 初始化缓存
 func init() {
 	Cache = cmap.New()
-	err := service.DB.ForEach(service.ChargeStationBucket, func(k string, v interface{}) error {
+	err := service.DB.ForEach(new(service.ChargeStation).BucketName(), func(k string, v interface{}) error {
 		chargeStation := v.(*service.ChargeStation)
 		err := NewClient(chargeStation).reConn()
 		return err
