@@ -11,10 +11,19 @@ type Codec interface {
 	Unmarshal(data []byte, value interface{}) error
 }
 
+type Interface interface {
+	// BucketName 桶名称
+	BucketName() string
+	// Type 桶里数据类型
+	Type() reflect.Type
+	// SliceType 桶里的slice类型
+	SliceType() reflect.Type
+}
+
 type BoltManager struct {
-	db              *bolt.DB
-	codec           Codec
-	bucketValueType map[string][]reflect.Type
+	db          *bolt.DB
+	codec       Codec
+	bucketsType map[string]Interface
 }
 
 type defaultCodec struct{}
@@ -31,35 +40,35 @@ func (d *defaultCodec) Unmarshal(data []byte, value interface{}) error {
 	return json.Unmarshal(data, value)
 }
 
-func NewBucket(structType interface{}, structSliceType interface{}) []reflect.Type {
-	bucketValueType := make([]reflect.Type, 0)
-	bucketValueType = append(bucketValueType, reflect.TypeOf(structType), reflect.TypeOf(structSliceType))
-	return bucketValueType
-}
-
 // New 创建库管理
-func New(path string, bucket map[string][]reflect.Type) (*BoltManager, error) {
+func New(path string, data ...Interface) (*BoltManager, error) {
 	db, err := bolt.Open(path, 0644, nil)
 	if err != nil {
 		return nil, err
 	}
-	if len(bucket) == 0 {
-		goto create
+	if data == nil {
+		return nil, nil
 	}
+	manager := &BoltManager{
+		db:          db,
+		codec:       NewJsonCodec(),
+		bucketsType: make(map[string]Interface),
+	}
+
 	err = db.Update(func(tx *bolt.Tx) error {
-		for k, _ := range bucket {
-			_, err = tx.CreateBucketIfNotExists([]byte(k))
+		for _, v := range data {
+			_, err = tx.CreateBucketIfNotExists([]byte(v.BucketName()))
 			if err != nil {
 				return err
 			}
+			manager.bucketsType[v.BucketName()] = v
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-create:
-	return &BoltManager{db: db, codec: NewJsonCodec(), bucketValueType: bucket}, nil
+	return manager, nil
 }
 
 // Close 关闭连接
@@ -75,7 +84,7 @@ func (b *BoltManager) RemoveBucket(bucketName string) (err error) {
 	if err != nil {
 		return err
 	}
-	delete(b.bucketValueType, bucketName)
+	delete(b.bucketsType, bucketName)
 	return nil
 }
 
@@ -93,11 +102,11 @@ func (b *BoltManager) Put(bucketName string, key string, value interface{}) (err
 }
 
 func (b *BoltManager) List(bucketName string) (interface{}, error) {
-	slice := reflect.MakeSlice(b.bucketValueType[bucketName][1], 0, 100)
+	slice := reflect.MakeSlice(b.bucketsType[bucketName].SliceType(), 0, 100)
 	err := b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketName))
 		return bucket.ForEach(func(k, v []byte) error {
-			value := reflect.New(b.bucketValueType[bucketName][0]).Interface()
+			value := reflect.New(b.bucketsType[bucketName].Type()).Interface()
 			err := b.codec.Unmarshal(v, value)
 			if err != nil {
 				return err
@@ -117,7 +126,7 @@ func (b *BoltManager) ForEach(bucketName string, handle func(k string, v interfa
 	err = b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketName))
 		err := bucket.ForEach(func(k, v []byte) error {
-			value := reflect.New(b.bucketValueType[bucketName][0]).Interface()
+			value := reflect.New(b.bucketsType[bucketName].Type()).Interface()
 			err := b.codec.Unmarshal(v, value)
 			if err != nil {
 				return err

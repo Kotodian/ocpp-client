@@ -2,7 +2,6 @@ package service
 
 import (
 	"ocpp-client/boltdb"
-	"reflect"
 )
 
 var (
@@ -12,8 +11,8 @@ var (
 
 func init() {
 	var err error
-	buckets := make(map[string][]reflect.Type)
-	buckets[ChargeStationBucket] = boltdb.NewBucket(ChargeStation{}, []*ChargeStation{})
+	buckets := make(map[string]boltdb.BoltType)
+	buckets[ChargeStationBucket] = boltdb.NewBoltType(ChargeStation{}, []*ChargeStation{})
 	DB, err = boltdb.New("ocpp", buckets)
 	if err != nil {
 		panic(err)
