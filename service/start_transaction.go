@@ -51,7 +51,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 		c.Transaction.IdToken = &request.IdToken
 		c.SendEvent()
 		// 存进数据库
-		err = DB.Put(c.BucketName(), c.ID(), c)
+		err = DB.Put(c.ID(), c)
 		if err != nil {
 			return nil, err
 		}

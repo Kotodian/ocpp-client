@@ -89,9 +89,9 @@ func (b *BoltManager) RemoveBucket(bucketName string) (err error) {
 }
 
 // Put 往Bucket里增加键值对
-func (b *BoltManager) Put(bucketName string, key string, value interface{}) (err error) {
+func (b *BoltManager) Put(key string, value Interface) (err error) {
 	err = b.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(bucketName))
+		bucket := tx.Bucket([]byte(value.BucketName()))
 		msg, err := b.codec.Marshal(value)
 		if err != nil {
 			return err
@@ -138,9 +138,9 @@ func (b *BoltManager) ForEach(bucketName string, handle func(k string, v interfa
 	return
 }
 
-func (b *BoltManager) Get(bucketName string, key string, value interface{}) (err error) {
+func (b *BoltManager) Get(key string, value Interface) (err error) {
 	err = b.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(bucketName))
+		bucket := tx.Bucket([]byte(value.BucketName()))
 		return b.codec.Unmarshal(bucket.Get([]byte(key)), value)
 	})
 	return

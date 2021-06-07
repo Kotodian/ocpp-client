@@ -62,7 +62,7 @@ func NewChargeStation(sn string) *ChargeStation {
 	}
 	defer chargeStation.withSN(sn)
 	chargeStation.Connectors = append(chargeStation.Connectors, NewConnector(1))
-	_ = DB.Put(chargeStation.BucketName(), sn, chargeStation)
+	_ = DB.Put(sn, chargeStation)
 	// 建立一个默认的充电枪
 	return chargeStation
 }
