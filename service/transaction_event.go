@@ -78,6 +78,8 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 						c.Transaction.entry.Infof("%s 充电完成 电量: %f\n", c.Sn, maxElectricity)
 						c.Transaction.EventType = message.TransactionEventEnumType_1_Ended
 						c.Electricity = minElectricity
+						state := message.ChargingStateEnumType_1_Idle
+						c.Transaction.Instance.ChargingState = &state
 						request.EventType = message.TransactionEventEnumType_1_Ended
 						request.TriggerReason = message.TriggerReasonEnumType_1_EnergyLimitReached
 						request.MeterValue = genMeterValue(c.Transaction.EventType)
@@ -135,7 +137,7 @@ func genMeterValue(eventType message.TransactionEventEnumType_1, electricity ...
 		}
 		sampleValues = append(sampleValues, sampleValue)
 		// 加入到meterValues
-		meterValues = append(meterValues, message.MeterValueType_1{SampledValue: sampleValues})
+		meterValues = append(meterValues, message.MeterValueType_1{SampledValue: sampleValues, Timestamp: time.Now().Format(time.RFC3339)})
 	} else if eventType == message.TransactionEventEnumType_1_Updated {
 		// 提供固定的功率、电压、电流 不断变化的电量 并且meterValue仍旧只有一个
 		context := message.ReadingContextEnumType_2_SampleClock
@@ -176,12 +178,12 @@ func genMeterValue(eventType message.TransactionEventEnumType_1, electricity ...
 		}
 		sampleValues = append(sampleValues, sampleValue)
 		// 加入到meterValues
-		meterValues = append(meterValues, message.MeterValueType_1{SampledValue: sampleValues})
+		meterValues = append(meterValues, message.MeterValueType_1{SampledValue: sampleValues, Timestamp: time.Now().Format(time.RFC3339)})
 	} else {
 		// 如果是ended meterValue有两个
 		context := message.ReadingContextEnumType_2_TransactionEnd
 		sampleValues = append(sampleValues, message.SampledValueType_1{Context: nil})
-		meterValues = append(meterValues, message.MeterValueType_1{SampledValue: sampleValues})
+		meterValues = append(meterValues, message.MeterValueType_1{SampledValue: sampleValues, Timestamp: time.Now().Format(time.RFC3339)})
 		sampleValues = make([]message.SampledValueType_1, 0)
 		sampleValue := message.SampledValueType_1{
 			Context: &context,
@@ -191,7 +193,7 @@ func genMeterValue(eventType message.TransactionEventEnumType_1, electricity ...
 			Value: maxElectricity,
 		}
 		sampleValues = append(sampleValues, sampleValue)
-		meterValues = append(meterValues, message.MeterValueType_1{SampledValue: sampleValues})
+		meterValues = append(meterValues, message.MeterValueType_1{SampledValue: sampleValues, Timestamp: time.Now().Format(time.RFC3339)})
 	}
 	return meterValues
 }
