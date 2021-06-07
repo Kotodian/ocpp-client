@@ -33,6 +33,11 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 			TransactionInfo: *c.Transaction.Instance,
 			SeqNo:           c.Transaction.SeqNo,
 		}
+		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
+			request.TriggerReason = message.TriggerReasonEnumType_1_RemoteStart
+		} else {
+			request.TriggerReason = message.TriggerReasonEnumType_1_RemoteStop
+		}
 		meterValue := genMeterValue(c.Transaction.EventType)
 		request.MeterValue = meterValue
 		msg, _, err := message.New("2", "TransactionEvent", request)
@@ -64,6 +69,7 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 						SeqNo:           c.Transaction.SeqNo,
 						Timestamp:       time.Now().Format(time.RFC3339),
 						TransactionInfo: *c.Transaction.Instance,
+						TriggerReason:   message.TriggerReasonEnumType_1_Trigger,
 					}
 					// 自动增加电量
 					c.Electricity += genElectricity()
