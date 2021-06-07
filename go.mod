@@ -3,6 +3,7 @@ module ocpp-client
 go 1.16
 
 require (
+	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/gin-gonic/gin v1.7.2
 	github.com/gorilla/websocket v1.4.2
@@ -14,4 +15,5 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.8.0
 	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
