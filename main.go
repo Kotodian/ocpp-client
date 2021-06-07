@@ -2,11 +2,10 @@ package main
 
 import (
 	_ "github.com/joho/godotenv/autoload"
-	"ocpp-client/init"
+	"ocpp-client/initialize"
 	"os"
 )
 
 func main() {
-	_ = init.GinEngine().Run(":" + os.Getenv("PORT"))
-
+	_ = initialize.GinEngine().Run(":" + os.Getenv("PORT"))
 }

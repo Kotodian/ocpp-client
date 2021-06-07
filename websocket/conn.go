@@ -4,7 +4,7 @@ import (
 	"github.com/gorilla/websocket"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/sirupsen/logrus"
-	"ocpp-client/init"
+	"ocpp-client/log"
 	"ocpp-client/message"
 	"ocpp-client/service"
 	"strings"
@@ -39,19 +39,6 @@ type Client struct {
 	close chan struct{}
 }
 
-// 初始化缓存
-func init() {
-	Cache = cmap.New()
-	err := service.DB.ForEach(new(service.ChargeStation).BucketName(), func(k string, v interface{}) error {
-		chargeStation := v.(*service.ChargeStation)
-		err := NewClient(chargeStation).reConn()
-		return err
-	})
-	if err != nil {
-		panic(err)
-	}
-}
-
 // NewClient 新建客户端,根据charge station 实例初始化
 func NewClient(instance *service.ChargeStation) *Client {
 	client := &Client{
@@ -61,7 +48,7 @@ func NewClient(instance *service.ChargeStation) *Client {
 		write:     make(chan []byte, 100),
 		read:      make(chan []byte, 100),
 		connected: false,
-		entry:     init.NewEntry(),
+		entry:     log.NewEntry(),
 	}
 	defer client.withSN(instance.ID())
 	// 存储的缓存
@@ -112,8 +99,8 @@ func (c *Client) Conn(addr string) error {
 	return nil
 }
 
-// reConn 重新建立连接
-func (c *Client) reConn() error {
+// ReConn 重新建立连接
+func (c *Client) ReConn() error {
 	conn, _, err := c.dialer.Dial(c.addr, nil)
 	if err != nil {
 		return err
@@ -246,7 +233,7 @@ func (c *Client) Close() {
 	c.SetConnected(false)
 	c.instance.Stop()
 	time.AfterFunc(10*time.Second, func() {
-		_ = c.reConn()
+		_ = c.ReConn()
 	})
 	close(c.close)
 }

@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/sirupsen/logrus"
-	"ocpp-client/init"
+	"ocpp-client/log"
 	"ocpp-client/message"
 	"reflect"
 	"sync"
@@ -58,7 +58,7 @@ func NewChargeStation(sn string) *ChargeStation {
 		Resend:      make(chan []byte, 100),
 		Connectors:  make([]*Connector, 0),
 		Electricity: minElectricity,
-		entry:       init.NewEntry(),
+		entry:       log.NewEntry(),
 	}
 	defer chargeStation.withSN(sn)
 	chargeStation.Connectors = append(chargeStation.Connectors, NewConnector(1))
