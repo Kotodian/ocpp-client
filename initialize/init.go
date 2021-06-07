@@ -1,7 +1,7 @@
 package initialize
 
 func init() {
-	go initapi()
-	initlog()
+	initapi()
+	initLog()
 	initdb()
 }
