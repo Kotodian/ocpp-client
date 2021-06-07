@@ -84,6 +84,10 @@ func (b *BoltManager) Close() error {
 
 // RemoveBucket 移除Bucket
 func (b *BoltManager) RemoveBucket(bucketName string) (err error) {
+	err = b.conn()
+	if err != nil {
+		return
+	}
 	err = b.db.Update(func(tx *bolt.Tx) error {
 		return tx.DeleteBucket([]byte(bucketName))
 	})
@@ -170,6 +174,23 @@ func (b *BoltManager) Get(key string, value Interface) (err error) {
 		return b.codec.Unmarshal(bucket.Get([]byte(key)), value)
 	})
 	return
+}
+
+func (b *BoltManager) Exists(bucketName string, key string) (bool, error) {
+	err := b.conn()
+	if err != nil {
+		return false, nil
+	}
+	exists := false
+	err = b.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketName))
+		get := bucket.Get([]byte(key))
+		if get != nil {
+			exists = true
+		}
+		return nil
+	})
+	return exists, nil
 }
 
 // Remove 删除指定的键

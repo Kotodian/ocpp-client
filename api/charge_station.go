@@ -65,13 +65,28 @@ func NewChargeStation(c *gin.Context) {
 				sn = request.SN
 			}
 			station := service.NewChargeStation(sn)
-			_ = service.DB.Put(sn, station)
+			exists, err := service.DB.Exists(station.BucketName(), station.ID())
+			if err != nil {
+				c.JSON(http.StatusBadRequest, err)
+				return
+			}
+			if !exists {
+				err = service.DB.Put(sn, station)
+			}
+			if err != nil {
+				c.JSON(http.StatusBadRequest, err)
+				return
+			}
 			client := websocket.NewClient(station)
 			if client == nil {
 				continue
 			}
 			addr := url.URL{Scheme: "ws", Host: os.Getenv("ADDR"), Path: "/ocpp/" + sn}
-			err := client.Conn(addr.String())
+			if exists {
+				err = client.ReConn()
+			} else {
+				err = client.Conn(addr.String())
+			}
 			if err != nil {
 				log.Printf("%s connect error %s\n", sn, err.Error())
 				continue
