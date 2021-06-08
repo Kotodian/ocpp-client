@@ -15,5 +15,9 @@ func (c *ChargeStation) ResetResponse(msgID string, msg []byte) ([]byte, error) 
 		Status: message.ResetStatusEnumType_1_Accepted,
 	}
 	msg, _, err = message.New("3", "Reset", response, msgID)
-	return msg, err
+	if err != nil {
+		c.entry.Errorln(err)
+		return nil, err
+	}
+	return msg, nil
 }

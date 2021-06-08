@@ -14,6 +14,7 @@ func (c *ChargeStation) StatusNotificationRequest() ([]byte, error) {
 	}
 	msg, _, err := message.New("2", "StatusNotification", request)
 	if err != nil {
+		c.entry.Errorln(err)
 		return nil, err
 	}
 	return msg, nil
@@ -23,6 +24,7 @@ func (c *ChargeStation) StatusNotificationResponse(msgID string, msg []byte) err
 	response := &message.StatusNotificationResponseJson{}
 	err := json.Unmarshal(msg, response)
 	if err != nil {
+		c.entry.Errorln(err)
 		return err
 	}
 	return nil

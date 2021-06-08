@@ -23,7 +23,11 @@ func (c *ChargeStation) BootNotificationRequest() ([]byte, error) {
 	}
 	// 封装成msg
 	msg, _, err := message.New("2", "BootNotification", request)
-	return msg, err
+	if err != nil {
+		c.entry.Errorln(err)
+		return nil, err
+	}
+	return msg, nil
 }
 
 func (c *ChargeStation) BootNotificationResponse(msgID string, msg []byte) error {
@@ -32,6 +36,7 @@ func (c *ChargeStation) BootNotificationResponse(msgID string, msg []byte) error
 	err := json.Unmarshal(msg, response)
 	// 解析错误
 	if err != nil {
+		c.entry.Errorln(err)
 		return err
 	}
 	// 如果状态是rejected就直接返回
@@ -43,6 +48,7 @@ func (c *ChargeStation) BootNotificationResponse(msgID string, msg []byte) error
 		time.AfterFunc(time.Duration(response.Interval)*time.Second, func() {
 			request, err := c.BootNotificationRequest()
 			if err != nil {
+				c.entry.Errorln(err)
 				return
 			}
 			c.Resend <- request
@@ -60,6 +66,7 @@ func (c *ChargeStation) BootNotificationResponse(msgID string, msg []byte) error
 				case <-ticker.C:
 					request, err := c.HeartbeatRequest()
 					if err != nil {
+						c.entry.Errorln(err)
 						return
 					}
 					c.Resend <- request

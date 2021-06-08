@@ -16,7 +16,11 @@ func (c *ChargeStation) FirmwareStatusNotificationRequest() ([]byte, error) {
 	}
 	// 封装成msg
 	msg, _, err := message.New("2", "FirmwareStatusNotification", request)
-	return msg, err
+	if err != nil {
+		c.entry.Errorln(err)
+		return nil, err
+	}
+	return msg, nil
 }
 
 func (c *ChargeStation) FirmwareStatusNotificationResponse(msgID string, msg []byte) error {

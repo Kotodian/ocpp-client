@@ -13,6 +13,7 @@ func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte
 	request := &message.RequestStartTransactionRequestJson{}
 	err := json.Unmarshal(msg, request)
 	if err != nil {
+		c.entry.Errorln(err)
 		return nil, err
 	}
 	defer func() {

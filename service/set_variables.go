@@ -9,6 +9,7 @@ func (c *ChargeStation) SetVariablesResponse(msgID string, msg []byte) ([]byte, 
 	request := &message.SetVariablesRequestJson{}
 	err := json.Unmarshal(msg, request)
 	if err != nil {
+		c.entry.Errorln(err)
 		return nil, err
 	}
 	response := &message.SetVariablesResponseJson{
@@ -19,5 +20,9 @@ func (c *ChargeStation) SetVariablesResponse(msgID string, msg []byte) ([]byte, 
 		},
 	}
 	msg, _, err = message.New("3", "SetVariables", response, msgID)
-	return msg, err
+	if err != nil {
+		c.entry.Errorln(err)
+		return nil, err
+	}
+	return msg, nil
 }

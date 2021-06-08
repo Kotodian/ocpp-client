@@ -70,6 +70,7 @@ func (c *Client) Conn(addr string) error {
 	}
 	defer func() {
 		if err != nil {
+			c.entry.Errorln(err)
 			return
 		}
 		c.withAddr(addr)
@@ -117,6 +118,8 @@ func (c *Client) ReConn() error {
 	}
 	defer func() {
 		if err != nil {
+			c.entry.Errorln(err)
+		} else {
 			c.withAddr(c.addr)
 		}
 	}()

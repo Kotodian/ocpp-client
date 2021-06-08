@@ -12,6 +12,7 @@ func (c *ChargeStation) HeartbeatRequest() ([]byte, error) {
 	// 封装成msg
 	msg, _, err := message.New("2", "Heartbeat", request)
 	if err != nil {
+		c.entry.Errorln(err)
 		return nil, err
 	}
 	return msg, nil

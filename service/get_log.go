@@ -19,5 +19,9 @@ func (c *ChargeStation) GetLogResponse(msgID string, msg []byte) ([]byte, error)
 	}
 	// 封装msg
 	msg, _, err = message.New("3", "GetLog", response, msgID)
-	return msg, err
+	if err != nil {
+		c.entry.Errorln(err)
+		return nil, err
+	}
+	return msg, nil
 }

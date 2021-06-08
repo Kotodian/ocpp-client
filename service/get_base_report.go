@@ -16,6 +16,7 @@ func (c *ChargeStation) GetBaseReportResponse(msgID string, msg []byte) ([]byte,
 	// 封装msg
 	msg, _, err = message.New("3", "GetBaseReport", &message.GetBaseReportResponseJson{Status: message.GenericDeviceModelStatusEnumType_1_Accepted}, msgID)
 	if err != nil {
+		c.entry.Errorln(err)
 		return nil, err
 	}
 	// 异步地发送多个NotifyReport

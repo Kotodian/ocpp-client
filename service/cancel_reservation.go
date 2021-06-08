@@ -12,6 +12,7 @@ func (c *ChargeStation) CancelReservationResponse(msgID string, msg []byte) ([]b
 	err := json.Unmarshal(msg, request)
 	// 解析失败
 	if err != nil {
+		c.entry.Errorln(err)
 		return nil, err
 	}
 	// 返回response
@@ -20,5 +21,9 @@ func (c *ChargeStation) CancelReservationResponse(msgID string, msg []byte) ([]b
 	}
 	// 封装成msg
 	msg, _, err = message.New("3", "CancelReservation", response, msgID)
-	return msg, err
+	if err != nil {
+		c.entry.Errorln(err)
+		return nil, err
+	}
+	return msg, nil
 }

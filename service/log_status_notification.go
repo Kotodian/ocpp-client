@@ -13,7 +13,11 @@ func (c *ChargeStation) LogStatusNotificationRequest() ([]byte, error) {
 		Status:    message.UploadLogStatusEnumType_1_Idle,
 	}
 	msg, _, err := message.New("2", "LogStatusNotification", request)
-	return msg, err
+	if err != nil {
+		c.entry.Errorln(err)
+		return nil, err
+	}
+	return msg, nil
 }
 
 func (c *ChargeStation) LogStatusNotificationResponse(msgID string, msg []byte) error {

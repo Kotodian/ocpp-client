@@ -15,5 +15,9 @@ func (c *ChargeStation) SendLocalListResponse(msgID string, msg []byte) ([]byte,
 		Status: message.SendLocalListStatusEnumType_1_Accepted,
 	}
 	msg, _, err = message.New("3", "SendLocalList", response, msgID)
-	return msg, err
+	if err != nil {
+		c.entry.Errorln(err)
+		return nil, err
+	}
+	return msg, nil
 }

@@ -190,7 +190,7 @@ func (b *BoltManager) Exists(bucketName string, key string) (bool, error) {
 		}
 		return nil
 	})
-	return exists, nil
+	return exists, err
 }
 
 // Remove 删除指定的键
