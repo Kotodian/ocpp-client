@@ -9,14 +9,8 @@ import (
 
 var engine *gin.Engine
 
-func initapi() {
+func init() {
 	engine = gin.Default()
-
-	transactionGroup := engine.Group(group.Transaction)
-	{
-		// TransactionEvent 充电
-		transactionGroup.POST("/add", api.TransactionEvent)
-	}
 
 	chargeStationGroup := engine.Group(group.ChargeStation)
 	{
@@ -26,6 +20,22 @@ func initapi() {
 		chargeStationGroup.POST("/add", api.NewChargeStation)
 		// Command 发送充电桩命令
 		chargeStationGroup.POST("/command", api.Command)
+	}
+
+	commandGroup := engine.Group(group.Command)
+	{
+		// FirmwareStatusNotification 固件状态上报
+		commandGroup.POST("/firmware_status_notification/", api.FirmwareStatusNotification)
+		// LogStatusNotification 日志状态上报
+		commandGroup.POST("/log_status_notification/", api.LogStatusNotification)
+		// NotifyReport 上报基本数据
+		commandGroup.POST("/notify_report/", api.NotifyReport)
+	}
+
+	transactionGroup := engine.Group(group.Transaction)
+	{
+		// TransactionEvent 充电
+		transactionGroup.POST("/add", api.TransactionEvent)
 	}
 
 }

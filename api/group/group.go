@@ -5,4 +5,6 @@ const (
 	ChargeStation = "/station"
 	// Transaction 充电
 	Transaction = "/transaction"
+	// Command 命令
+	Command = "/command"
 )

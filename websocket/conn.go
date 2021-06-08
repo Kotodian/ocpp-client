@@ -250,3 +250,7 @@ func (c *Client) Close() {
 	})
 	close(c.close)
 }
+
+func Get(key string) (interface{}, bool) {
+	return Cache.Get(key)
+}
