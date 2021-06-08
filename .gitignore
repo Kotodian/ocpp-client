@@ -1,5 +1,4 @@
 .idea
 *.db
 logs
-logs/test.log
 *.log
