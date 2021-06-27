@@ -9,7 +9,7 @@ import (
 
 var engine *gin.Engine
 
-func init() {
+func initapi() {
 	engine = gin.Default()
 
 	chargeStationGroup := engine.Group(group.ChargeStation)

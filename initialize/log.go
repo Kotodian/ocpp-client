@@ -4,7 +4,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"ocpp-client/log"
-	"ocpp-client/log/hooks"
 	"os"
 )
 
@@ -17,7 +16,7 @@ func initLog() {
 	log.Logger.SetOutput(io.MultiWriter(os.Stdout, file))
 	log.Logger.SetLevel(logrus.DebugLevel)
 	log.Logger.SetFormatter(&logrus.JSONFormatter{})
-	log.Logger.SetReportCaller(true)
+	//log.Logger.SetReportCaller(true)
 	// elasticsearch hook
-	log.Logger.AddHook(hooks.NewEsHook(hooks.NewEsCfg()))
+	//log.Logger.AddHook(hooks.NewEsHook(hooks.NewEsCfg()))
 }
