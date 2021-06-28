@@ -19,6 +19,7 @@ type Transaction struct {
 	IdToken *message.IdTokenType_3 `json:"id_token"`
 	// token type
 	IdTokenType message.IdTokenEnumType_7 `json:"id_token_type"`
+	ReserveId   int                       `json:"reserve_id"`
 	// 停止充电channel stop_transaction和transaction_event交互使用
 	stop chan struct{}
 }

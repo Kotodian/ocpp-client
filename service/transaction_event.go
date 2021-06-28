@@ -33,6 +33,9 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 			TransactionInfo: *c.Transaction.Instance,
 			SeqNo:           c.Transaction.SeqNo,
 		}
+		if c.Transaction.ReserveId != 0 {
+			request.ReservationId = &c.Transaction.ReserveId
+		}
 		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
 			request.TriggerReason = message.TriggerReasonEnumType_1_RemoteStart
 		} else {
@@ -70,6 +73,9 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 						Timestamp:       time.Now().Format(time.RFC3339),
 						TransactionInfo: *c.Transaction.Instance,
 						TriggerReason:   message.TriggerReasonEnumType_1_Trigger,
+					}
+					if c.Transaction.ReserveId > 0 {
+						request.ReservationId = &c.Transaction.ReserveId
 					}
 					// 自动增加电量
 					c.Electricity += genElectricity()

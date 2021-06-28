@@ -10,24 +10,30 @@ import (
 
 func (c *ChargeStation) RequestStartTransactionResponse(msgID string, msg []byte) ([]byte, error) {
 	c.lock.Lock()
+	defer c.lock.Unlock()
 	request := &message.RequestStartTransactionRequestJson{}
 	err := json.Unmarshal(msg, request)
 	if err != nil {
 		c.entry.Errorln(err)
 		return nil, err
 	}
+	response := &message.RequestStartTransactionResponseJson{}
 	defer func() {
-		c.lock.Unlock()
 		if err != nil {
 			return
 		}
-		// 转换成updated并定时发送
-		if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
-			_ = c.UpdateTransaction()
+		if response.Status == message.RequestStartStopStatusEnumType_1_Accepted {
+			// 转换成updated并定时发送
+			if c.Transaction.EventType == message.TransactionEventEnumType_1_Started {
+				_ = c.UpdateTransaction()
+			}
 		}
 	}()
 
-	response := &message.RequestStartTransactionResponseJson{}
+	if c.InTransaction() {
+		response.Status = message.RequestStartStopStatusEnumType_1_Rejected
+		goto send
+	}
 
 	if c.Transaction == nil ||
 		c.Transaction.EventType == message.TransactionEventEnumType_1_Ended {
