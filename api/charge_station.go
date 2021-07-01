@@ -152,3 +152,34 @@ func formatSN(sn string) string {
 	}
 	return sn
 }
+
+// CloseChargeStation 关闭websocket连接
+// @method: post
+// @group: ChargeStation
+// @router: /close
+func CloseChargeStation(c *gin.Context) {
+	request := &struct {
+		SN string `json:"sn"`
+	}{}
+	err := c.ShouldBindJSON(request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+	if len(request.SN) == 0 {
+		c.JSON(http.StatusBadRequest, errors.New("no sn"))
+		return
+	}
+	_conn, ok := websocket.Get(request.SN)
+	if !ok {
+		c.JSON(http.StatusBadRequest, errors.New("no conn"))
+		return
+	}
+	conn, ok := _conn.(*websocket.Client)
+	if !ok {
+		c.JSON(http.StatusBadRequest, errors.New("not conn"))
+		return
+	}
+	conn.Close()
+	c.JSON(http.StatusOK, "success")
+}

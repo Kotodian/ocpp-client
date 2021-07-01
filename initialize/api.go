@@ -9,7 +9,7 @@ import (
 
 var engine *gin.Engine
 
-func initapi() {
+func init() {
 	engine = gin.Default()
 
 	chargeStationGroup := engine.Group(group.ChargeStation)
@@ -20,6 +20,8 @@ func initapi() {
 		chargeStationGroup.POST("/add", api.NewChargeStation)
 		// Command 发送充电桩命令
 		chargeStationGroup.POST("/command", api.Command)
+		// CloseChargeStation 关闭websocket连接
+		chargeStationGroup.POST("/close", api.CloseChargeStation)
 	}
 
 	commandGroup := engine.Group(group.Command)
