@@ -1,10 +1,13 @@
 package api
 
 import (
+	"bytes"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
+	"math/big"
 	"net/http"
 	"net/url"
 	"ocpp-client/service"
@@ -59,34 +62,35 @@ func NewChargeStation(c *gin.Context) {
 		for i := 1; i <= request.Nums; i++ {
 			var sn string
 			if len(request.SN) != 11 {
-				sn := request.SN + fmt.Sprint(i)
+				sn = request.SN + createRandomNumber(11-len(request.SN))
 				sn = formatSN(sn)
 			} else {
 				sn = request.SN
 			}
+			fmt.Println(request.SN)
 			station := service.NewChargeStation(sn)
-			exists, err := service.DB.Exists(station.BucketName(), station.ID())
-			if err != nil {
-				c.JSON(http.StatusBadRequest, err)
-				return
-			}
-			if !exists {
-				err = service.DB.Put(sn, station)
-			}
-			if err != nil {
-				c.JSON(http.StatusBadRequest, err)
-				return
-			}
+			//exists, err := service.DB.Exists(station.BucketName(), station.ID())
+			//if err != nil {
+			//	log.Println(err)
+			//	return
+			//}
+			//if !exists {
+			//	err = service.DB.Put(sn, station)
+			//}
+			//if err != nil {
+			//	log.Println(err)
+			//	return
+			//}
 			client := websocket.NewClient(station)
 			if client == nil {
 				continue
 			}
 			addr := url.URL{Scheme: "ws", Host: os.Getenv("ADDR"), Path: "/ocpp/" + sn}
-			if exists {
-				err = client.ReConn()
-			} else {
-				err = client.Conn(addr.String())
-			}
+			//if exists {
+			//	err = client.ReConn()
+			//} else {
+			err = client.Conn(addr.String())
+			//}
 			if err != nil {
 				log.Printf("%s connect error %s\n", sn, err.Error())
 				continue
@@ -151,6 +155,21 @@ func formatSN(sn string) string {
 		sn += repeat
 	}
 	return sn
+}
+
+func createRandomNumber(len int) string {
+	var numbers = []byte{1, 2, 3, 4, 5, 7, 8, 9}
+	var container string
+	length := bytes.NewReader(numbers).Len()
+
+	for i := 1; i <= len; i++ {
+		random, err := rand.Int(rand.Reader, big.NewInt(int64(length)))
+		if err != nil {
+
+		}
+		container += fmt.Sprintf("%d", numbers[random.Int64()])
+	}
+	return container
 }
 
 // CloseChargeStation 关闭websocket连接

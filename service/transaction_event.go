@@ -63,6 +63,13 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 					}
 					// 发送meter value
 					c.Transaction.Next()
+					if c.Transaction.SeqNo == 3 {
+						suspendedEvse := message.ChargingStateEnumType_1_SuspendedEVSE
+						c.Transaction.Instance.ChargingState = &suspendedEvse
+					} else {
+						chargingState := message.ChargingStateEnumType_1_Charging
+						c.Transaction.Instance.ChargingState = &chargingState
+					}
 					request := &message.TransactionEventRequestJson{
 						EventType: message.TransactionEventEnumType_1_Updated,
 						IdToken: &message.IdTokenType_6{
@@ -95,7 +102,7 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 						c.Connectors[0].SetState(message.ConnectorStatusEnumType_1_Available)
 						msg, _ = c.StatusNotificationRequest()
 						c.Resend <- msg
-						_ = DB.Put(c.ID(), c)
+						//_ = DB.Put(c.ID(), c)
 						c.lock.Unlock()
 						return
 					}
@@ -103,7 +110,7 @@ func (c *ChargeStation) TransactionEventRequest() ([]byte, error) {
 					request.MeterValue = genMeterValue(c.Transaction.EventType, c.Electricity)
 					msg, _, _ := message.New("2", "TransactionEvent", request)
 					c.Resend <- msg
-					_ = DB.Put(c.ID(), c)
+					//_ = DB.Put(c.ID(), c)
 					c.lock.Unlock()
 				}
 			}

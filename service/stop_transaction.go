@@ -15,7 +15,7 @@ func (c *ChargeStation) RequestStopTransactionResponse(msgID string, msg []byte)
 	}
 	defer func() {
 		c.StopTransaction()
-		_ = DB.Put(c.ID(), c)
+		//_ = DB.Put(c.ID(), c)
 		c.lock.Unlock()
 		time.Sleep(1 * time.Second)
 	}()

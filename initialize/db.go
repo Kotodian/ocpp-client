@@ -14,7 +14,7 @@ func initdb() {
 	if err != nil {
 		panic(err)
 	}
-	defer service.DB.Close()
+
 	err = service.DB.ForEach(new(service.ChargeStation).BucketName(), func(k string, v interface{}) error {
 		_chargeStation := v.(*service.ChargeStation)
 		chargeStation := service.NewChargeStation(_chargeStation.Sn)
@@ -22,6 +22,8 @@ func initdb() {
 		return err
 	})
 	if err != nil {
+		service.DB.Close()
 		panic(err)
 	}
+	service.DB.Close()
 }

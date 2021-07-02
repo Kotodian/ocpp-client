@@ -64,8 +64,13 @@ func NewClient(instance *service.ChargeStation) *Client {
 // Conn 连接到指定地址
 func (c *Client) Conn(addr string) error {
 	// 建立连接
-	conn, _, err := c.dialer.Dial(addr, nil)
+	conn, resp, err := c.dialer.Dial(addr, nil)
 	if err != nil {
+		if err == websocket.ErrBadHandshake {
+			if resp != nil {
+				c.entry.Errorln("bad handshake status:", resp.StatusCode)
+			}
+		}
 		return err
 	}
 	defer func() {

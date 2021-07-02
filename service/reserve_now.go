@@ -48,7 +48,7 @@ func (c *ChargeStation) ReserveNowResponse(msgID string, msg []byte) ([]byte, er
 			c.SendEvent()
 			time.Sleep(1 * time.Second)
 			// 存进数据库
-			err = DB.Put(c.ID(), c)
+			//err = DB.Put(c.ID(), c)
 			if err != nil {
 				return
 			}

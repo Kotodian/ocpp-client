@@ -57,7 +57,7 @@ func (c *ChargeStation) BootNotificationResponse(msgID string, msg []byte) error
 		// 确认Heartbeat的时间间隔
 		c.interval = time.Duration(response.Interval) * time.Second
 		go func() {
-			ticker := time.NewTicker(time.Duration(response.Interval) * time.Second)
+			ticker := time.NewTicker(time.Duration(30) * time.Second)
 			defer ticker.Stop()
 			for {
 				select {

@@ -19359,7 +19359,8 @@ const HashAlgorithmEnumType_9_SHA512 HashAlgorithmEnumType_9 = "SHA512"
 
 type HeartbeatRequestJson struct {
 	// CustomData corresponds to the JSON schema field "customData".
-	CustomData *CustomDataType_56 `json:"customData,omitempty"`
+	CustomData  *CustomDataType_56 `json:"customData,omitempty"`
+	StationTime int64              `json:"stationtime,omitempty"`
 }
 
 type HeartbeatResponseJson struct {
